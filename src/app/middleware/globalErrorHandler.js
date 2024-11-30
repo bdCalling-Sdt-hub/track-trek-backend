@@ -25,7 +25,11 @@ const globalErrorHandler = (error, req, res, next) => {
         message,
         errorMessages: messages,
       } = handleValidationError(error);
-      return { statusCode: code || 400, message, errorMessages: messages };
+      return {
+        statusCode: code || 400,
+        message,
+        errorMessages: messages,
+      };
     },
     JsonWebTokenError: () => ({
       statusCode: 401,
@@ -43,7 +47,11 @@ const globalErrorHandler = (error, req, res, next) => {
         message,
         errorMessages: messages,
       } = handleCastError(error);
-      return { statusCode: code || 400, message, errorMessages: messages };
+      return {
+        statusCode: code || 400,
+        message,
+        errorMessages: messages,
+      };
     },
     ApiError: () => ({
       statusCode: error?.statusCode || 500,

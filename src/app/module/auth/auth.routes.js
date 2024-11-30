@@ -15,7 +15,7 @@ router
   .post("/reset-password", AuthController.resetPassword)
   .patch(
     "/change-password",
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.ADMIN),
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
     AuthController.changePassword
   );
 
