@@ -1,9 +1,8 @@
-const mongoose = require("mongoose");
+const { Schema, model } = require("mongoose");
 const bcrypt = require("bcrypt");
-const config = require("../../../config");
 const validator = require("validator");
 
-const { Schema, model } = mongoose;
+const config = require("../../../config");
 
 const AuthSchema = new Schema(
   {
