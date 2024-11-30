@@ -1,29 +1,23 @@
 const { Schema, model } = require("mongoose");
 const ObjectId = Schema.Types.ObjectId;
 
-const AdminSchema = new Schema(
+const notificationSchema = new Schema(
   {
-    authId: {
+    toId: {
       type: ObjectId,
       required: true,
-      ref: "Auth",
     },
-    name: {
+    title: {
       type: String,
       required: true,
     },
-    email: {
+    message: {
       type: String,
       required: true,
     },
-    profile_image: {
-      type: String,
-    },
-    phoneNumber: {
-      type: String,
-    },
-    address: {
-      type: String,
+    isRead: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -31,6 +25,6 @@ const AdminSchema = new Schema(
   }
 );
 
-const Admin = model("Admin", AdminSchema);
+const Notification = model("Notification", notificationSchema);
 
-module.exports = Admin;
+module.exports = Notification;

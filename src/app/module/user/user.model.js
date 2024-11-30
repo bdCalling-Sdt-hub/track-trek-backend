@@ -1,11 +1,10 @@
-const mongoose = require("mongoose");
-
-const { Schema, model, Types } = mongoose;
+const { Schema, model } = require("mongoose");
+const ObjectId = Schema.Types.ObjectId;
 
 const UserSchema = new Schema(
   {
     authId: {
-      type: Types.ObjectId,
+      type: ObjectId,
       required: true,
       ref: "Auth",
     },
