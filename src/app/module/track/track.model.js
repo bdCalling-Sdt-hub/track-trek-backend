@@ -17,7 +17,7 @@ const TrackSchema = new Schema(
       required: true,
     },
     trackImage: {
-      type: String,
+      type: Array,
       required: true,
     },
     address: {
