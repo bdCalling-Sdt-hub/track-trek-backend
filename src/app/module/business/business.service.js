@@ -3,6 +3,7 @@ const ApiError = require("../../../error/ApiError");
 const validateFields = require("../../../util/validateFields");
 const Event = require("../event/event.model");
 const postNotification = require("../../../util/postNotification");
+const Track = require("../track/track.model");
 
 const createEvent = async (req) => {
   const { user, data, files } = req;
@@ -57,8 +58,6 @@ const createTrack = async (req) => {
     "address",
     "location",
     "description",
-    "trackDays",
-    "totalSlots",
   ]);
 
   const trackData = {
@@ -71,20 +70,22 @@ const createTrack = async (req) => {
       coordinates: [Number(data.longitude), Number(data.latitude)],
     },
     description: data.description,
-    trackDays: data.trackDays,
-    totalSlots: data.totalSlots,
   };
 
-  const track = await Event.create(trackData);
+  const track = await Track.create(trackData);
 
-  postNotification("New Event", "You have created a new event", userId);
+  postNotification("New Track", "You have created a new track", userId);
 
   return track;
 };
 
 const updateTrack = async (user, payload) => {
-    
-}
+  const { userId } = user;
+
+  validateFields(data, ["trackDays", "totalSlots"]);
+
+  const test = { trackDays: data.trackDays, totalSlots: data.totalSlots };
+};
 
 const getMyBusiness = async (user, query) => {
   const { userId } = user;
