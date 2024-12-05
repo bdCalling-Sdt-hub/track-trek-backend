@@ -5,11 +5,17 @@ const ENUM_USER_ROLE = {
 };
 
 const ENUM_SLOT_STATUS = {
-  OPEN: "OPEN",
-  BOOKED: "BOOKED",
-  BOOKED: "BOOKED",
+  OPEN: "open",
+  BOOKED: "booked",
+};
+
+const ENUM_EVENT_STATUS = {
+  OPEN: "open",
+  FULL: "full",
 };
 
 module.exports = {
   ENUM_USER_ROLE,
+  ENUM_EVENT_STATUS,
+  ENUM_SLOT_STATUS,
 };

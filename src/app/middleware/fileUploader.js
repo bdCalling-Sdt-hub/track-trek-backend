@@ -37,7 +37,7 @@ const uploadFile = () => {
   });
 
   const fileFilter = (req, file, cb) => {
-    const allowedFieldNames = ["profile_image"];
+    const allowedFieldNames = ["profile_image", "track_image", "event_image"];
 
     // Allow requests without files (when there's no fieldname)
     if (!file.fieldname) return cb(null, true);
@@ -54,7 +54,11 @@ const uploadFile = () => {
   const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-  }).fields([{ name: "profile_image", maxCount: 1 }]);
+  }).fields([
+    { name: "profile_image", maxCount: 1 },
+    { name: "track_image", maxCount: 5 },
+    { name: "event_image", maxCount: 5 },
+  ]);
 
   return upload;
 };
