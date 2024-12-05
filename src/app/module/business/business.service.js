@@ -5,6 +5,10 @@ const Event = require("../event/event.model");
 const postNotification = require("../../../util/postNotification");
 const Track = require("../track/track.model");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
+const { isValidDate } = require("../../../util/isValidDate");
+const { logger } = require("../../../shared/logger");
+const catchAsync = require("../../../shared/catchAsync");
+const { ENUM_EVENT_STATUS } = require("../../../util/enum");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -29,6 +33,11 @@ const createEvent = async (req) => {
   dateTimeValidator(date, startTime);
   dateTimeValidator(null, endTime);
 
+  const newStartDateTime = new Date(`${date} ${startTime}`);
+  const newEndDateTime = new Date(`${date} ${endTime}`);
+
+  isValidDate([newStartDateTime, newEndDateTime]);
+
   const eventData = {
     host: userId,
     eventName: data.eventName,
@@ -41,6 +50,8 @@ const createEvent = async (req) => {
     date,
     startTime,
     endTime,
+    startDateTime: newStartDateTime,
+    endDateTime: newEndDateTime,
     moreInfo: data.moreInfo,
     maxPeople: data.maxPeople,
   };
@@ -107,6 +118,43 @@ const deleteBusiness = async (user, query) => {
   const { userId } = user;
   validateFields("", []);
 };
+
+const updateEventStatus = async () => {
+  try {
+    const now = new Date();
+
+    const [started, ended] = await Promise.all([
+      Event.updateMany(
+        {
+          startDateTime: { $lte: now },
+          status: { $in: [ENUM_EVENT_STATUS.OPEN, ENUM_EVENT_STATUS.FULL] },
+        },
+        {
+          status: ENUM_EVENT_STATUS.STARTED,
+        }
+      ),
+      Event.updateMany(
+        {
+          endDateTime: { $lte: now },
+          status: ENUM_EVENT_STATUS.STARTED,
+        },
+        {
+          status: ENUM_EVENT_STATUS.ENDED,
+        }
+      ),
+    ]);
+
+    if (started.modifiedCount > 0)
+      logger.info(`Updated ${started.modifiedCount} events status to started`);
+
+    if (ended.modifiedCount > 0)
+      logger.info(`Updated ${ended.modifiedCount} events status to ended`);
+  } catch (error) {
+    logger.error(`Error updating event status`);
+  }
+};
+
+setInterval(() => updateEventStatus(), 3000);
 
 const BusinessService = {
   createEvent,
