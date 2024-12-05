@@ -13,7 +13,7 @@ const EventSchema = new Schema(
       required: true,
     },
     event_image: {
-      type: String,
+      type: Array,
       required: true,
     },
     address: {
@@ -75,6 +75,11 @@ const EventSchema = new Schema(
       type: Number,
       min: 0,
       default: 0,
+    },
+    status: {
+      type: String,
+      enum: ["open", "full"],
+      default: "open",
     },
   },
   {

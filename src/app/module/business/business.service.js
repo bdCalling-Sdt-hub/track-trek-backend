@@ -4,12 +4,15 @@ const validateFields = require("../../../util/validateFields");
 const Event = require("../event/event.model");
 const postNotification = require("../../../util/postNotification");
 const Track = require("../track/track.model");
+const dateTimeValidator = require("../../../util/dateTimeValidator");
 
 const createEvent = async (req) => {
-  const { user, data, files } = req;
+  const { user, body, files } = req;
+  const data = JSON.parse(body.data);
   const { userId } = user;
+  const { date, startTime, endTime } = data;
 
-  validateFields(files, "event_image");
+  validateFields(files, ["event_image"]);
   validateFields(data, [
     "eventName",
     "address",
@@ -23,6 +26,9 @@ const createEvent = async (req) => {
     "maxPeople",
   ]);
 
+  dateTimeValidator(date, startTime);
+  dateTimeValidator(null, endTime);
+
   const eventData = {
     host: userId,
     eventName: data.eventName,
@@ -32,9 +38,9 @@ const createEvent = async (req) => {
       coordinates: [Number(data.longitude), Number(data.latitude)],
     },
     description: data.description,
-    date: data.date,
-    startTime: data.startTime,
-    endTime: data.endTime,
+    date,
+    startTime,
+    endTime,
     moreInfo: data.moreInfo,
     maxPeople: data.maxPeople,
   };
@@ -110,4 +116,4 @@ const BusinessService = {
   deleteBusiness,
 };
 
-module.exports = BusinessService;
+module.exports = { BusinessService };
