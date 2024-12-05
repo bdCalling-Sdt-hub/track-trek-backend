@@ -12,7 +12,7 @@ const EventSchema = new Schema(
       type: String,
       required: true,
     },
-    eventImage: {
+    event_image: {
       type: String,
       required: true,
     },
@@ -22,7 +22,7 @@ const EventSchema = new Schema(
     },
     location: {
       type: {
-        String,
+        type: String,
         enum: ["Point"],
         default: "Point",
       },
@@ -35,15 +35,11 @@ const EventSchema = new Schema(
       type: String,
       required: true,
     },
-    startDate: {
+    date: {
       type: String,
       required: true,
     },
     startTime: {
-      type: String,
-      required: true,
-    },
-    endDate: {
       type: String,
       required: true,
     },

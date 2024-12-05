@@ -1,0 +1,38 @@
+const express = require("express");
+const auth = require("../../middleware/auth");
+const { ENUM_USER_ROLE } = require("../../../util/enum");
+const { uploadFile } = require("../../middleware/fileUploader");
+const { BusinessController } = require("./business.controller");
+
+const router = express.Router();
+
+router
+  .post(
+    "/track",
+    auth(ENUM_USER_ROLE.HOST),
+    uploadFile(),
+    BusinessController.createTrack
+  )
+  .post(
+    "/event",
+    auth(ENUM_USER_ROLE.HOST),
+    uploadFile(),
+    BusinessController.createEvent
+  )
+  .get(
+    "/all-business",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    BusinessController.getAllBusiness
+  )
+  .get(
+    "/my-business",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.getMyBusiness
+  )
+  .delete(
+    "/delete-business",
+    auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    BusinessController.deleteBusiness
+  );
+
+module.exports = router;

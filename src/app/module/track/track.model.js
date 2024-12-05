@@ -16,7 +16,7 @@ const TrackSchema = new Schema(
       type: String,
       required: true,
     },
-    trackImage: {
+    track_image: {
       type: Array,
       required: true,
     },
@@ -26,7 +26,7 @@ const TrackSchema = new Schema(
     },
     location: {
       type: {
-        String,
+        type: String,
         enum: ["Point"],
         default: "Point",
       },

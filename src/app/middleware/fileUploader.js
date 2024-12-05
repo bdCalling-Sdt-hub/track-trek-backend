@@ -16,6 +16,10 @@ const uploadFile = () => {
 
       if (file.fieldname === "profile_image")
         uploadPath = "uploads/images/profile";
+      else if (file.fieldname === "track_image")
+        uploadPath = "uploads/images/track";
+      else if (file.fieldname === "event_image")
+        uploadPath = "uploads/images/event";
       else uploadPath = "uploads";
 
       createDirIfNotExists(uploadPath);
