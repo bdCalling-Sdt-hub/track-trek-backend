@@ -12,6 +12,8 @@ const ENUM_SLOT_STATUS = {
 const ENUM_EVENT_STATUS = {
   OPEN: "open",
   FULL: "full",
+  STARTED: "started",
+  ENDED: "ended",
 };
 
 module.exports = {

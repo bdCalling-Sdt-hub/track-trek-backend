@@ -47,6 +47,14 @@ const EventSchema = new Schema(
       type: String,
       required: true,
     },
+    startDateTime: {
+      type: Date,
+      required: true,
+    },
+    endDateTime: {
+      type: Date,
+      required: true,
+    },
     moreInfo: [
       // array of dynamic form fields
       {
@@ -78,7 +86,7 @@ const EventSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["open", "full"],
+      enum: ["open", "full", "started", "ended"],
       default: "open",
     },
   },
