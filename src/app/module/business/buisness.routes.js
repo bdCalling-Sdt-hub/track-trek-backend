@@ -21,6 +21,11 @@ router
   )
   .post("/join-event", auth(ENUM_USER_ROLE.USER), BusinessController.joinEvent)
   .get(
+    "/get-single-business",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    BusinessController.getSingleBusiness
+  )
+  .get(
     "/all-business",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
     BusinessController.getAllBusiness
