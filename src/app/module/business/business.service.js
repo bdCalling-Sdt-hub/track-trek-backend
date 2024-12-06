@@ -173,6 +173,30 @@ const updateTrack = async (user, payload) => {
   const test = { trackDays: data.trackDays, totalSlots: data.totalSlots };
 };
 
+const getSingleBusiness = async (query) => {
+  const { eventId, participants } = query || {};
+
+  if (!eventId) throw new ApiError(status.NOT_FOUND, "Missing eventId");
+
+  const event = await Event.findOne({ _id: eventId }).lean();
+  if (!event) throw new ApiError(status.NOT_FOUND, "Events not found");
+
+  if (participants) {
+    const bookings = await Booking.find({ _id: { $in: event.bookings } })
+      .populate({
+        path: "user",
+        select: "-authId -createdAt -updatedAt -_id -__v",
+      })
+      .select("user numOfPeople moreInfo price -_id")
+      .lean();
+
+    return { count: bookings.length, bookings };
+  } else {
+  }
+
+  return event;
+};
+
 const getMyBusiness = async (user, query) => {
   const eventQuery = new QueryBuilder(
     Event.find({ host: user.userId }).lean(),
@@ -268,6 +292,7 @@ const BusinessService = {
   createEvent,
   joinEvent,
   createTrack,
+  getSingleBusiness,
   getMyBusiness,
   getAllBusiness,
   deleteBusiness,

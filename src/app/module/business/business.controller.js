@@ -32,6 +32,16 @@ const createTrack = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleBusiness = catchAsync(async (req, res) => {
+  const result = await BusinessService.getSingleBusiness(req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Business retrieved",
+    data: result,
+  });
+});
+
 const getMyBusiness = catchAsync(async (req, res) => {
   const result = await BusinessService.getMyBusiness(req.user, req.query);
   sendResponse(res, {
@@ -66,6 +76,7 @@ const BusinessController = {
   createEvent,
   joinEvent,
   createTrack,
+  getSingleBusiness,
   getMyBusiness,
   getAllBusiness,
   deleteBusiness,
