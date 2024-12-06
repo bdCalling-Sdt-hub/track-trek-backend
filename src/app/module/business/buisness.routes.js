@@ -19,6 +19,7 @@ router
     uploadFile(),
     BusinessController.createEvent
   )
+  .post("/join-event", auth(ENUM_USER_ROLE.USER), BusinessController.joinEvent)
   .get(
     "/all-business",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),

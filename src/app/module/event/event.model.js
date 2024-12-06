@@ -35,7 +35,7 @@ const EventSchema = new Schema(
       type: String,
       required: true,
     },
-    date: {
+    startDate: {
       type: String,
       required: true,
     },
@@ -43,12 +43,16 @@ const EventSchema = new Schema(
       type: String,
       required: true,
     },
-    endTime: {
+    startDateTime: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
       type: String,
       required: true,
     },
-    startDateTime: {
-      type: Date,
+    endTime: {
+      type: String,
       required: true,
     },
     endDateTime: {
@@ -68,10 +72,10 @@ const EventSchema = new Schema(
         },
       },
     ],
-    attendees: [
+    bookings: [
       {
         type: ObjectId,
-        ref: "User",
+        ref: "Booking",
       },
     ],
     maxPeople: {

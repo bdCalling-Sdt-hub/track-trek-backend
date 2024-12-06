@@ -12,6 +12,16 @@ const createEvent = catchAsync(async (req, res) => {
   });
 });
 
+const joinEvent = catchAsync(async (req, res) => {
+  const result = await BusinessService.joinEvent(req.user, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Event joined",
+    data: result,
+  });
+});
+
 const createTrack = catchAsync(async (req, res) => {
   const result = await BusinessService.createTrack(req);
   sendResponse(res, {
@@ -23,7 +33,7 @@ const createTrack = catchAsync(async (req, res) => {
 });
 
 const getMyBusiness = catchAsync(async (req, res) => {
-  const result = await BusinessService.getMyBusiness(req.query);
+  const result = await BusinessService.getMyBusiness(req.user, req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -54,6 +64,7 @@ const deleteBusiness = catchAsync(async (req, res) => {
 
 const BusinessController = {
   createEvent,
+  joinEvent,
   createTrack,
   getMyBusiness,
   getAllBusiness,

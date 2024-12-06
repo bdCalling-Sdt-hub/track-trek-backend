@@ -18,29 +18,39 @@ const BookingSchema = new Schema(
       ref: "Track",
     },
     event: {
-      type: ObjectId,
+      type: ObjectId, // *********** event ***********
       ref: "Event",
     },
     slot: {
       type: ObjectId,
       ref: "Slot",
     },
-    date: {
-      type: String,
+    startDateTime: {
+      type: Date,
       required: true,
     },
-    startTime: {
-      type: String,
-      required: true,
-    },
-    endTime: {
-      type: String,
+    endDateTime: {
+      type: Date,
       required: true,
     },
     price: {
       type: Number,
       required: true,
     },
+    numOfPeople: {
+      type: Number, // *********** event ***********
+    },
+    moreInfo: [
+      // *********** event ***********
+      {
+        label: {
+          type: String,
+        },
+        value: {
+          type: String,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
