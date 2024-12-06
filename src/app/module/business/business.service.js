@@ -7,14 +7,16 @@ const Track = require("../track/track.model");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
 const { isValidDate } = require("../../../util/isValidDate");
 const { logger } = require("../../../shared/logger");
-const catchAsync = require("../../../shared/catchAsync");
 const { ENUM_EVENT_STATUS } = require("../../../util/enum");
+const QueryBuilder = require("../../../builder/queryBuilder");
+const Booking = require("../booking/booking.model");
+const { default: mongoose } = require("mongoose");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
   const data = JSON.parse(body.data);
   const { userId } = user;
-  const { date, startTime, endTime } = data;
+  const { startDate, startTime, endDate, endTime } = data;
 
   validateFields(files, ["event_image"]);
   validateFields(data, [
@@ -23,18 +25,19 @@ const createEvent = async (req) => {
     "longitude",
     "latitude",
     "description",
-    "date",
+    "startDate",
     "startTime",
+    "endDate",
     "endTime",
     "moreInfo",
     "maxPeople",
   ]);
 
-  dateTimeValidator(date, startTime);
-  dateTimeValidator(null, endTime);
+  dateTimeValidator(startDate, startTime);
+  dateTimeValidator(endDate, endTime);
 
-  const newStartDateTime = new Date(`${date} ${startTime}`);
-  const newEndDateTime = new Date(`${date} ${endTime}`);
+  const newStartDateTime = new Date(`${startDate} ${startTime}`);
+  const newEndDateTime = new Date(`${endDate} ${endTime}`);
 
   isValidDate([newStartDateTime, newEndDateTime]);
 
@@ -47,8 +50,9 @@ const createEvent = async (req) => {
       coordinates: [Number(data.longitude), Number(data.latitude)],
     },
     description: data.description,
-    date,
+    startDate,
     startTime,
+    endDate,
     endTime,
     startDateTime: newStartDateTime,
     endDateTime: newEndDateTime,
@@ -61,6 +65,70 @@ const createEvent = async (req) => {
   postNotification("New Event", "You have created a new event", userId);
 
   return event;
+};
+
+const joinEvent = async (user, payload) => {
+  const { eventId, numOfPeople } = payload;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  validateFields(payload, ["eventId", "price", "numOfPeople"]);
+
+  const event = await Event.findOne({ _id: eventId });
+  if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+  if (event.status !== ENUM_EVENT_STATUS.OPEN)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `Event is no longer open (status: ${event.status}).`
+    );
+
+  const totalPeople = event.currentPeople + numOfPeople;
+  if (totalPeople > event.maxPeople)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `${
+        event.maxPeople - event.currentPeople
+      } seats available. Please reduce the number of people.`
+    );
+
+  const bookingData = {
+    user: user.userId,
+    host: event.host,
+    event: eventId,
+    startDateTime: event.startDateTime,
+    endDateTime: event.endDateTime,
+    price: payload.price,
+    numOfPeople,
+    moreInfo: payload.moreInfo || null,
+  };
+
+  try {
+    const [booking] = await Promise.all([
+      Booking.create([bookingData], { session }),
+      Event.updateOne(
+        { _id: eventId },
+        {
+          $inc: { currentPeople: numOfPeople },
+        }
+      ).session(session),
+    ]);
+
+    if (totalPeople === event.maxPeople)
+      await Event.updateOne(
+        { _id: eventId },
+        { status: ENUM_EVENT_STATUS.FULL }
+      ).session(session);
+
+    await session.commitTransaction();
+
+    return booking;
+  } catch (error) {
+    await session.abortTransaction();
+    throw new ApiError(status.BAD_REQUEST, error.message);
+  } finally {
+    session.endSession();
+  }
 };
 
 const createTrack = async (req) => {
@@ -105,18 +173,56 @@ const updateTrack = async (user, payload) => {
 };
 
 const getMyBusiness = async (user, query) => {
-  const { userId } = user;
-  validateFields("", []);
+  const eventQuery = new QueryBuilder(
+    Event.find({ host: user.userId }).lean(),
+    query
+  )
+    .search(["eventName", "address", "description"])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const [events, meta] = await Promise.all([
+    eventQuery.modelQuery,
+    eventQuery.countTotal(),
+  ]);
+
+  if (!events.length) throw new ApiError(status.NOT_FOUND, "Events not found");
+
+  return {
+    meta,
+    events,
+  };
 };
 
-const getAllBusiness = async (user, query) => {
-  const { userId } = user;
-  validateFields("", []);
+const getAllBusiness = async (query) => {
+  const eventQuery = new QueryBuilder(Event.find({}).lean(), query)
+    .search(["eventName", "address", "description"])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const [events, meta] = await Promise.all([
+    eventQuery.modelQuery,
+    eventQuery.countTotal(),
+  ]);
+
+  if (!events.length)
+    throw new ApiError(status.NOT_FOUND, "Destinations not found");
+
+  return {
+    meta,
+    events,
+  };
 };
 
-const deleteBusiness = async (user, query) => {
-  const { userId } = user;
-  validateFields("", []);
+const deleteBusiness = async (query) => {
+  const { eventId } = query;
+
+  if (eventId) return await Event.deleteOne({ _id: eventId });
+  else throw new ApiError(status.BAD_REQUEST, "Missing id");
 };
 
 const updateEventStatus = async () => {
@@ -154,10 +260,12 @@ const updateEventStatus = async () => {
   }
 };
 
-setInterval(() => updateEventStatus(), 3000);
+// update event status (e.g. started ended) every hour
+setInterval(() => updateEventStatus(), 60 * 60 * 1000);
 
 const BusinessService = {
   createEvent,
+  joinEvent,
   createTrack,
   getMyBusiness,
   getAllBusiness,
