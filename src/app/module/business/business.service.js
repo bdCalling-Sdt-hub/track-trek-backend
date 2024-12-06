@@ -68,6 +68,7 @@ const createEvent = async (req) => {
 };
 
 const joinEvent = async (user, payload) => {
+  const { userId } = user;
   const { eventId, numOfPeople } = payload;
 
   const session = await mongoose.startSession();
@@ -93,7 +94,7 @@ const joinEvent = async (user, payload) => {
     );
 
   const bookingData = {
-    user: user.userId,
+    user: userId,
     host: event.host,
     event: eventId,
     startDateTime: event.startDateTime,
@@ -104,15 +105,15 @@ const joinEvent = async (user, payload) => {
   };
 
   try {
-    const [booking] = await Promise.all([
-      Booking.create([bookingData], { session }),
-      Event.updateOne(
-        { _id: eventId },
-        {
-          $inc: { currentPeople: numOfPeople },
-        }
-      ).session(session),
-    ]);
+    const booking = await Booking.create([bookingData], { session });
+
+    await Event.updateOne(
+      { _id: eventId },
+      {
+        $inc: { currentPeople: numOfPeople },
+        $push: { bookings: booking[0]._id },
+      }
+    ).session(session);
 
     if (totalPeople === event.maxPeople)
       await Event.updateOne(
@@ -122,7 +123,7 @@ const joinEvent = async (user, payload) => {
 
     await session.commitTransaction();
 
-    return booking;
+    return booking[0];
   } catch (error) {
     await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);

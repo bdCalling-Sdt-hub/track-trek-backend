@@ -72,10 +72,10 @@ const EventSchema = new Schema(
         },
       },
     ],
-    attendees: [
+    bookings: [
       {
         type: ObjectId,
-        ref: "User",
+        ref: "Booking",
       },
     ],
     maxPeople: {
