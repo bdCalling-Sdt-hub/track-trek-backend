@@ -133,29 +133,29 @@ const joinEvent = async (user, payload) => {
 };
 
 const createTrack = async (req) => {
-  const { user, data, files } = req;
+  const { user, body: payload, files } = req;
   const { userId } = user;
 
-  validateFields(files, "track_image");
-  validateFields(data, [
-    "host",
+  validateFields(files, ["track_image"]);
+  validateFields(payload, [
     "trackName",
     "category",
     "address",
-    "location",
+    "longitude",
+    "latitude",
     "description",
   ]);
 
   const trackData = {
     host: userId,
-    trackName: data.trackName,
-    category: data.category,
+    trackName: payload.trackName,
+    category: payload.category,
     track_image: files.track_image.map((img) => img.path),
-    address: data.address,
+    address: payload.address,
     location: {
-      coordinates: [Number(data.longitude), Number(data.latitude)],
+      coordinates: [Number(payload.longitude), Number(payload.latitude)],
     },
-    description: data.description,
+    description: payload.description,
   };
 
   const track = await Track.create(trackData);
@@ -167,10 +167,39 @@ const createTrack = async (req) => {
 
 const updateTrack = async (user, payload) => {
   const { userId } = user;
+  const { trackId, trackDays, totalSlots, renters, slots } = payload || {};
 
-  validateFields(data, ["trackDays", "totalSlots"]);
+  const data = {
+    trackDays,
+  };
 
-  const test = { trackDays: data.trackDays, totalSlots: data.totalSlots };
+  if (trackDays.length) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // Month is 0-indexed (0 = January)
+
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
+
+    let count = 0;
+
+    // Iterate over all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const daysOfWeek = date.toLocaleDateString("en-US", { weekday: "long" });
+
+      // Check if the day of the week is in the trackDays array
+      if (trackDays.includes(daysOfWeek)) count++;
+    }
+
+    data.totalTrackDayInMonth = count;
+
+    postNotification("Track Updated", `Track ${trackId} updated`, userId);
+  }
+
+  const updatedTrack = await Track.updateOne({ _id: trackId }, data).lean();
+
+  return updatedTrack;
 };
 
 const getSingleBusiness = async (query) => {
@@ -292,6 +321,7 @@ const BusinessService = {
   createEvent,
   joinEvent,
   createTrack,
+  updateTrack,
   getSingleBusiness,
   getMyBusiness,
   getAllBusiness,

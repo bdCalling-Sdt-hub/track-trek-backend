@@ -44,6 +44,9 @@ const TrackSchema = new Schema(
         type: String,
       },
     ],
+    totalTrackDayInMonth: {
+      type: Number,
+    },
     totalSlots: {
       type: Number,
     },

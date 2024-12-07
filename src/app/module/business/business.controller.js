@@ -32,6 +32,16 @@ const createTrack = catchAsync(async (req, res) => {
   });
 });
 
+const updateTrack = catchAsync(async (req, res) => {
+  const result = await BusinessService.updateTrack(req.user, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Track updated",
+    data: result,
+  });
+});
+
 const getSingleBusiness = catchAsync(async (req, res) => {
   const result = await BusinessService.getSingleBusiness(req.query);
   sendResponse(res, {
@@ -76,6 +86,7 @@ const BusinessController = {
   createEvent,
   joinEvent,
   createTrack,
+  updateTrack,
   getSingleBusiness,
   getMyBusiness,
   getAllBusiness,

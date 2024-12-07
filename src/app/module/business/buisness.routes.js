@@ -13,6 +13,11 @@ router
     uploadFile(),
     BusinessController.createTrack
   )
+  .patch(
+    "/update-track",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.updateTrack
+  )
   .post(
     "/event",
     auth(ENUM_USER_ROLE.HOST),
