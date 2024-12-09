@@ -62,6 +62,16 @@ const searchForSlots = catchAsync(async (req, res) => {
   });
 });
 
+const bookASlot = catchAsync(async (req, res) => {
+  const result = await BusinessService.bookASlot(req.user, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Slot booked",
+    data: result,
+  });
+});
+
 const getSingleBusiness = catchAsync(async (req, res) => {
   const result = await BusinessService.getSingleBusiness(req.query);
   sendResponse(res, {
@@ -109,6 +119,7 @@ const BusinessController = {
   updateTrack,
   createSlot,
   searchForSlots,
+  bookASlot,
   getSingleBusiness,
   getMyBusiness,
   getAllBusiness,

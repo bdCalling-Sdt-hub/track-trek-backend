@@ -28,6 +28,7 @@ router
     auth(ENUM_USER_ROLE.USER),
     BusinessController.searchForSlots
   )
+  .get("/book-a-slot", auth(ENUM_USER_ROLE.USER), BusinessController.bookASlot)
   .post(
     "/event",
     auth(ENUM_USER_ROLE.HOST),
