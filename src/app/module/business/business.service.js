@@ -245,15 +245,15 @@ const createSlot = async (user, payload) => {
   return slot;
 };
 
-// const getSlotsOfTrack = async (query) => {
-//   validateFields(query, ["trackId"]);
+const searchForSlots = async (query) => {
+  validateFields(query, ["trackId"]);
 
-//   const slots = await Slot.find({ track: query.trackId });
+  const slots = await Slot.find({ track: query.trackId });
 
-//   if (slots.length) throw new ApiError(status.NOT_FOUND, "No slot found");
+  if (slots.length) throw new ApiError(status.NOT_FOUND, "No slot found");
 
-//   return slots;
-// };
+  return slots;
+};
 
 const getSingleBusiness = async (query) => {
   const { trackId, eventId, participants, slots } = query || {};
@@ -432,7 +432,7 @@ const BusinessService = {
   createTrack,
   updateTrack,
   createSlot,
-  // getSlotsOfTrack,
+  searchForSlots,
   getSingleBusiness,
   getMyBusiness,
   getAllBusiness,
