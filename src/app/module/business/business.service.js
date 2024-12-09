@@ -11,6 +11,7 @@ const { ENUM_EVENT_STATUS } = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
+const Slot = require("../slot/slot.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -33,8 +34,7 @@ const createEvent = async (req) => {
     "maxPeople",
   ]);
 
-  dateTimeValidator(startDate, startTime);
-  dateTimeValidator(endDate, endTime);
+  dateTimeValidator([startDate, endDate], [startTime, endTime]);
 
   const newStartDateTime = new Date(`${startDate} ${startTime}`);
   const newEndDateTime = new Date(`${endDate} ${endTime}`);
@@ -133,29 +133,29 @@ const joinEvent = async (user, payload) => {
 };
 
 const createTrack = async (req) => {
-  const { user, data, files } = req;
+  const { user, body: payload, files } = req;
   const { userId } = user;
 
-  validateFields(files, "track_image");
-  validateFields(data, [
-    "host",
+  validateFields(files, ["track_image"]);
+  validateFields(payload, [
     "trackName",
     "category",
     "address",
-    "location",
+    "longitude",
+    "latitude",
     "description",
   ]);
 
   const trackData = {
     host: userId,
-    trackName: data.trackName,
-    category: data.category,
+    trackName: payload.trackName,
+    category: payload.category,
     track_image: files.track_image.map((img) => img.path),
-    address: data.address,
+    address: payload.address,
     location: {
-      coordinates: [Number(data.longitude), Number(data.latitude)],
+      coordinates: [Number(payload.longitude), Number(payload.latitude)],
     },
-    description: data.description,
+    description: payload.description,
   };
 
   const track = await Track.create(trackData);
@@ -167,34 +167,137 @@ const createTrack = async (req) => {
 
 const updateTrack = async (user, payload) => {
   const { userId } = user;
+  const { trackId, trackDays, totalSlots, renters, slots } = payload || {};
 
-  validateFields(data, ["trackDays", "totalSlots"]);
+  const data = {
+    trackDays,
+  };
 
-  const test = { trackDays: data.trackDays, totalSlots: data.totalSlots };
-};
+  if (trackDays.length) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // Month is 0-indexed (0 = January)
 
-const getSingleBusiness = async (query) => {
-  const { eventId, participants } = query || {};
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
 
-  if (!eventId) throw new ApiError(status.NOT_FOUND, "Missing eventId");
+    let count = 0;
 
-  const event = await Event.findOne({ _id: eventId }).lean();
-  if (!event) throw new ApiError(status.NOT_FOUND, "Events not found");
+    // Iterate over all days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const daysOfWeek = date.toLocaleDateString("en-US", { weekday: "long" });
 
-  if (participants) {
-    const bookings = await Booking.find({ _id: { $in: event.bookings } })
-      .populate({
-        path: "user",
-        select: "-authId -createdAt -updatedAt -_id -__v",
-      })
-      .select("user numOfPeople moreInfo price -_id")
-      .lean();
+      // Check if the day of the week is in the trackDays array
+      if (trackDays.includes(daysOfWeek)) count++;
+    }
 
-    return { count: bookings.length, bookings };
-  } else {
+    data.totalTrackDayInMonth = count;
+
+    postNotification("Track Updated", `Track ${trackId} updated`, userId);
   }
 
-  return event;
+  const updatedTrack = await Track.updateOne({ _id: trackId }, data).lean();
+
+  return updatedTrack;
+};
+
+const createSlot = async (user, payload) => {
+  const { userId } = user;
+  const { trackId, day, startTime, endTime } = payload || {};
+
+  validateFields(payload, [
+    "trackId",
+    "host",
+    "day",
+    "slotNo",
+    "startTime",
+    "endTime",
+    "price",
+    "description",
+  ]);
+
+  dateTimeValidator([], [startTime, endTime]);
+
+  const slotData = {
+    host: userId,
+    track: trackId,
+    day,
+    slotNo: payload.slotNo,
+    startTime,
+    endTime,
+    price: payload.price,
+    description: payload.description,
+  };
+
+  const slot = await Slot.create(slotData);
+
+  Promise.all([
+    Track.updateOne({ _id: trackId }, { $push: { slots: slot._id } }),
+  ]);
+
+  postNotification(
+    "Slot Created",
+    `New slot added to track: ${trackId}`,
+    userId
+  );
+
+  return slot;
+};
+
+// const getSlotsOfTrack = async (query) => {
+//   validateFields(query, ["trackId"]);
+
+//   const slots = await Slot.find({ track: query.trackId });
+
+//   if (slots.length) throw new ApiError(status.NOT_FOUND, "No slot found");
+
+//   return slots;
+// };
+
+const getSingleBusiness = async (query) => {
+  const { trackId, eventId, participants, slots } = query || {};
+
+  if (!eventId && !trackId)
+    throw new ApiError(status.NOT_FOUND, "Missing eventId or trackId");
+
+  if (eventId) {
+    const event = await Event.findOne({ _id: eventId }).lean();
+    if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+
+    if (participants) {
+      const bookings = await Booking.find({ _id: { $in: event.bookings } })
+        .populate({
+          path: "user",
+          select: "-authId -createdAt -updatedAt -_id -__v",
+        })
+        .select("user numOfPeople moreInfo price -_id")
+        .lean();
+
+      return { count: bookings.length, bookings };
+    }
+
+    return event;
+  }
+
+  if (trackId) {
+    if (slots) {
+      const track = await Track.findOne({ _id: trackId })
+        .populate({
+          path: "slots",
+          select: "-createdAt -updatedAt -__v",
+        })
+        .lean();
+
+      return track;
+    } else {
+      const track = await Track.findOne({ _id: trackId }).lean();
+
+      if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
+
+      return track;
+    }
+  }
 };
 
 const getMyBusiness = async (user, query) => {
@@ -222,25 +325,60 @@ const getMyBusiness = async (user, query) => {
 };
 
 const getAllBusiness = async (query) => {
-  const eventQuery = new QueryBuilder(Event.find({}).lean(), query)
-    .search(["eventName", "address", "description"])
-    .filter()
-    .sort()
-    .paginate()
-    .fields();
+  const { event, track, ...newQuery } = query;
 
-  const [events, meta] = await Promise.all([
-    eventQuery.modelQuery,
-    eventQuery.countTotal(),
-  ]);
+  if (event) {
+    const eventQuery = new QueryBuilder(Event.find({}).lean(), newQuery)
+      .search(["eventName", "address", "description"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
 
-  if (!events.length)
-    throw new ApiError(status.NOT_FOUND, "Destinations not found");
+    const [events, meta] = await Promise.all([
+      eventQuery.modelQuery,
+      eventQuery.countTotal(),
+    ]);
 
-  return {
-    meta,
-    events,
-  };
+    if (!events.length)
+      throw new ApiError(status.NOT_FOUND, "Events not found");
+
+    return {
+      meta,
+      events,
+    };
+  }
+
+  if (track) {
+    const trackQuery = new QueryBuilder(
+      Track.find({})
+        .populate({
+          path: "host",
+          select: "-authId -createdAt -updatedAt -__v",
+        })
+        .select("-trackDays -createdAt -updatedAt")
+        .lean(),
+      newQuery
+    )
+      .search(["trackName", "address", "description"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const [tracks, meta] = await Promise.all([
+      trackQuery.modelQuery,
+      trackQuery.countTotal(),
+    ]);
+
+    if (!tracks.length)
+      throw new ApiError(status.NOT_FOUND, "Tracks not found");
+
+    return {
+      meta,
+      tracks,
+    };
+  }
 };
 
 const deleteBusiness = async (query) => {
@@ -292,6 +430,9 @@ const BusinessService = {
   createEvent,
   joinEvent,
   createTrack,
+  updateTrack,
+  createSlot,
+  // getSlotsOfTrack,
   getSingleBusiness,
   getMyBusiness,
   getAllBusiness,
