@@ -19,6 +19,16 @@ router
     BusinessController.updateTrack
   )
   .post(
+    "/create-slot",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.createSlot
+  )
+  // .get(
+  //   "/get-slots-of-track",
+  //   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+  //   BusinessController.getSlotsOfTrack
+  // )
+  .post(
     "/event",
     auth(ENUM_USER_ROLE.HOST),
     uploadFile(),
