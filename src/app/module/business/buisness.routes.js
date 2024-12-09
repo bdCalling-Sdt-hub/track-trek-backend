@@ -23,11 +23,12 @@ router
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.createSlot
   )
-  // .get(
-  //   "/get-slots-of-track",
-  //   auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
-  //   BusinessController.getSlotsOfTrack
-  // )
+  .get(
+    "/search-for-slots",
+    auth(ENUM_USER_ROLE.USER),
+    BusinessController.searchForSlots
+  )
+  .get("/book-a-slot", auth(ENUM_USER_ROLE.USER), BusinessController.bookASlot)
   .post(
     "/event",
     auth(ENUM_USER_ROLE.HOST),
