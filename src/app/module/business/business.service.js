@@ -397,13 +397,7 @@ const getAllBusiness = async (query) => {
 
   if (track) {
     const trackQuery = new QueryBuilder(
-      Track.find({})
-        .populate({
-          path: "host",
-          select: "-authId -createdAt -updatedAt -__v",
-        })
-        .select("-trackDays -createdAt -updatedAt")
-        .lean(),
+      Track.find({}).populate("host").lean(),
       newQuery
     )
       .search(["trackName", "address", "description"])
