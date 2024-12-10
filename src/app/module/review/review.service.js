@@ -5,56 +5,28 @@ const Review = require("./review.model");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const postNotification = require("../../../util/postNotification");
 const validateFields = require("../../../util/validateFields");
-const { Schema } = require("mongoose");
+const { default: mongoose } = require("mongoose");
 const Track = require("../track/track.model");
+const { logger } = require("../../../shared/logger");
 
 const postReview = async (userData, payload) => {
   const { userId } = userData;
   const { trackId } = payload || {};
+
+  validateFields(payload, ["trackId", "rating", "review"]);
+
+  const track = await Track.findById(trackId).select("").lean();
+  if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
+
   const ReviewData = {
     user: userId,
     track: trackId,
     ...payload,
   };
-  const trackObjectId = Schema.Types.ObjectId.createFromHexString(trackId);
-
-  validateFields(payload, ["trackId", "rating", "review"]);
-
-  const track = await Track.findById(trackId).select("user make").lean();
-  if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
-
   const result = await Review.create(ReviewData);
 
-  const [avgTrackRatingAgg] = await Promise.all([
-    Review.aggregate([
-      {
-        $match: { track: trackObjectId },
-      },
-      {
-        $group: {
-          _id: "$track",
-          avgRating: {
-            $avg: "$rating",
-          },
-        },
-      },
-    ]),
-  ]);
-
-  const avgTrackRating = avgTrackRatingAgg[0].avgRating.toFixed(2) ?? 0;
-
-  Promise.all([
-    Car.updateOne(
-      { _id: trackId },
-      { rating: avgTrackRating },
-      { new: true, runValidators: true }
-    ),
-  ]);
-
-  postNotification(
-    "New Review Alert",
-    `You've received a new ${payload.rating}-star review on your ${track.make}.`,
-    track.user
+  setImmediate(() =>
+    handleBackgroundTask(trackId, userId, payload.rating, track.trackName)
   );
 
   return result;
@@ -91,6 +63,44 @@ const getAllReview = async (query) => {
     meta,
     result,
   };
+};
+
+const handleBackgroundTask = async (trackId, userId, rating, trackName) => {
+  try {
+    const trackObjectId = mongoose.Types.ObjectId.createFromHexString(trackId);
+
+    const [avgTrackRatingAgg] = await Promise.all([
+      Review.aggregate([
+        {
+          $match: { track: trackObjectId },
+        },
+        {
+          $group: {
+            _id: "$track",
+            avgRating: {
+              $avg: "$rating",
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const avgTrackRating = avgTrackRatingAgg[0].avgRating.toFixed(2) ?? 0;
+
+    await Promise.all([
+      Track.updateOne(
+        { _id: trackId },
+        { rating: avgTrackRating, $inc: { totalReview: 1 } }
+      ),
+      postNotification(
+        "New Review",
+        `You've received a new ${rating}-star review on your ${trackName}.`,
+        userId
+      ),
+    ]);
+  } catch (error) {
+    logger.error(error.message);
+  }
 };
 
 const ReviewService = {
