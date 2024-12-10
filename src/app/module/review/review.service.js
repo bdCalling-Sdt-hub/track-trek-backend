@@ -33,24 +33,22 @@ const postReview = async (userData, payload) => {
 };
 
 const getAllReview = async (query) => {
-  const { carId, ...newQuery } = query;
+  const { trackId, ...newQuery } = query;
 
-  let reviewQuery;
-  if (carId) {
-    reviewQuery = new QueryBuilder(Review.find({ car: carId }), newQuery)
-      .search([])
-      .filter()
-      .sort()
-      .paginate()
-      .fields();
-  } else {
-    reviewQuery = new QueryBuilder(Review.find({}), newQuery)
-      .search([])
-      .filter()
-      .sort()
-      .paginate()
-      .fields();
-  }
+  validateFields(query, ["trackId"]);
+
+  const reviewQuery = new QueryBuilder(
+    Review.find({ track: trackId }).populate({
+      path: "user",
+      select: "profile_image name -_id",
+    }),
+    newQuery
+  )
+    .search([])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
 
   const [result, meta] = await Promise.all([
     reviewQuery.modelQuery,
