@@ -8,6 +8,7 @@ const validateFields = require("../../../util/validateFields");
 const { default: mongoose } = require("mongoose");
 const Track = require("../track/track.model");
 const { logger } = require("../../../shared/logger");
+const Like = require("../like/like.model");
 
 const postReview = async (userData, payload) => {
   const { userId } = userData;
@@ -63,6 +64,55 @@ const getAllReview = async (query) => {
   };
 };
 
+const likeDislike = async (userData, query) => {
+  const { userId } = userData;
+  const { trackId } = query || {};
+  const likeData = { user: userId, track: trackId };
+
+  validateFields(query, ["trackId"]);
+
+  const [track, liked] = await Promise.all([
+    Track.findById(trackId),
+    Like.findOne({ user: userId, track: trackId }),
+  ]);
+
+  if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
+
+  if (liked) {
+    Promise.all([
+      Like.deleteOne({
+        user: userId,
+        track: trackId,
+      }),
+      Track.updateOne(
+        {
+          _id: trackId,
+          totalLikes: { $gt: 0 },
+        },
+        { $inc: { totalLikes: -1 } },
+        { runValidators: true }
+      ),
+    ]);
+
+    return {
+      message: "Disliked",
+    };
+  }
+
+  Promise.all([
+    Like.create(likeData),
+    Track.updateOne(
+      { _id: trackId },
+      { $inc: { totalLikes: 1 } },
+      { runValidators: true }
+    ),
+  ]);
+
+  return {
+    message: "Liked",
+  };
+};
+
 const handleBackgroundTask = async (trackId, userId, rating, trackName) => {
   try {
     const trackObjectId = mongoose.Types.ObjectId.createFromHexString(trackId);
@@ -104,6 +154,7 @@ const handleBackgroundTask = async (trackId, userId, rating, trackName) => {
 const ReviewService = {
   postReview,
   getAllReview,
+  likeDislike,
 };
 
 module.exports = { ReviewService };

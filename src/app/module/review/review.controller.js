@@ -22,9 +22,19 @@ const getAllReview = catchAsync(async (req, res) => {
   });
 });
 
+const likeDislike = catchAsync(async (req, res) => {
+  const result = await ReviewService.likeDislike(req.user, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message ? result.message : "Liked",
+  });
+});
+
 const ReviewController = {
   postReview,
   getAllReview,
+  likeDislike,
 };
 
 module.exports = { ReviewController };
