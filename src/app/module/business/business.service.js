@@ -12,6 +12,7 @@ const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { model, default: mongoose } = require("mongoose");
 const Slot = require("../slot/slot.model");
+const moment = require("moment");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -208,7 +209,6 @@ const createSlot = async (user, payload) => {
 
   validateFields(payload, [
     "trackId",
-    "host",
     "day",
     "slotNo",
     "startTime",
@@ -252,54 +252,36 @@ const searchForSlots = async (query) => {
 
   dateTimeValidator([date], []);
 
-  const dateTime = new Date(date);
-  const day = new Date(date).toLocaleString("en-US", { weekday: "long" });
+  const dayOfWeek = moment(date).format("dddd"); // e.g., 'Monday', 'Tuesday'
 
-  const availableSlots = await Slot.aggregate([
-    // Step 1
-    {
-      $match: {
-        track: mongoose.Types.ObjectId.createFromHexString(trackId),
-        day,
-      },
+  const bookedSlots = await Booking.find({
+    slot: { $exists: true },
+    startDateTime: {
+      $gte: moment(date).startOf("day").toDate(),
+      $lt: moment(date).endOf("day").toDate(),
     },
-    // Step 2: Perform a left join with the Booking collection to check if there are bookings for the slot
-    {
-      $lookup: {
-        from: "bookings", // Name of the bookings collection
-        localField: "_id", // Slot _id
-        foreignField: "slot", // Booking's slot reference field
-        as: "bookings",
-      },
-    },
-    // Step 3: Filter out slots that have bookings on the specific date
-    {
-      $match: {
-        "bookings.startDateTime": {
-          $not: {
-            $gte: dateTime,
-            $lt: new Date(dateTime.setDate(dateTime.getDate() + 1)),
-          },
-        },
-      },
-    },
-  ]);
+  });
 
-  console.log(availableSlots.length);
-  return availableSlots;
+  const bookedSlotIds = bookedSlots.map((booking) => booking.slot);
 
-  // const slots = await Slot.find({ day }).select("-createdAt -updatedAt -__v");
+  const slots = await Slot.find({
+    _id: { $nin: bookedSlotIds },
+    track: trackId,
+    day: dayOfWeek,
+  });
 
-  // if (!slots.length) throw new ApiError(status.NOT_FOUND, "No slot found");
+  if (!slots.length) throw new ApiError(status.NOT_FOUND, "No slots available");
 
-  // return slots;
+  return { count: slots.length, slots };
 };
 
 const bookASlot = async (user, payload) => {
   const { userId } = user;
-  const { slotId } = payload || {};
+  const { slotId, date } = payload || {};
 
-  validateFields(payload, ["slotId"]);
+  validateFields(payload, ["slotId", "date"]);
+
+  dateTimeValidator([date], []);
 
   const slot = await Slot.findById(slotId);
 
@@ -308,10 +290,15 @@ const bookASlot = async (user, payload) => {
     host: slot.host,
     track: slot.track,
     slot: slot._id,
-    startDateTime: slot.startDateTime,
-    endDateTime: slot.endDateTime,
-    price: payload.price,
+    startDateTime: new Date(`${date} ${slot.startTime}`),
+    endDateTime: new Date(`${date} ${slot.endTime}`),
+    price: slot.price,
   };
+
+  const booking = await Booking.create(bookingData);
+
+  // return bookingData;
+  return booking;
 };
 
 const getSingleBusiness = async (query) => {
@@ -410,13 +397,7 @@ const getAllBusiness = async (query) => {
 
   if (track) {
     const trackQuery = new QueryBuilder(
-      Track.find({})
-        .populate({
-          path: "host",
-          select: "-authId -createdAt -updatedAt -__v",
-        })
-        .select("-trackDays -createdAt -updatedAt")
-        .lean(),
+      Track.find({}).populate("host").lean(),
       newQuery
     )
       .search(["trackName", "address", "description"])

@@ -62,6 +62,14 @@ const TrackSchema = new Schema(
         ref: "Slot",
       },
     ],
+    totalLikes: {
+      type: Number,
+      default: 0,
+    },
+    totalReview: {
+      type: Number,
+      default: 0,
+    },
     rating: {
       type: Number,
       min: 0,
