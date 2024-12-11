@@ -10,7 +10,12 @@ const SlotSchema = new Schema(
     },
     track: {
       type: ObjectId,
-      ref: "track",
+      ref: "Track",
+      required: true,
+    },
+    event: {
+      type: ObjectId,
+      ref: "Event",
       required: true,
     },
     day: {
