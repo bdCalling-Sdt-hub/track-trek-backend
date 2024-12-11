@@ -78,16 +78,6 @@ const EventSchema = new Schema(
         ref: "Booking",
       },
     ],
-    maxPeople: {
-      type: Number,
-      min: 1,
-      required: true,
-    },
-    currentPeople: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
     status: {
       type: String,
       enum: ["open", "full", "started", "ended"],
