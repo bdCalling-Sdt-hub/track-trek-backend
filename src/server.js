@@ -16,7 +16,7 @@ async function main() {
     });
 
     process.on("unhandledRejection", (error) => {
-      logger.error("Unhandled Rejection:", error);
+      errorLogger.error("Unhandled Rejection:", error);
       // process.exit(1);
     });
 
