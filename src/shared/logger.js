@@ -43,6 +43,10 @@ const errorLogger = createLogger({
   format: combine(label({ label: "TrackTrek" }), timestamp(), myFormat),
   transports: [
     new transports.Console(),
+    new transports.File({
+      level: "error",
+      filename: path.join(logDir, "errors", "um-error.log"),
+    }),
     new DailyRotateFile({
       level: "error",
       filename: path.join(logDir, "errors", "um-%DATE%-error.log"),
