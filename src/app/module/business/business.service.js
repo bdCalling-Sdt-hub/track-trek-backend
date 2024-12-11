@@ -18,7 +18,7 @@ const createEvent = async (req) => {
   const { user, body, files } = req;
   const data = JSON.parse(body.data);
   const { userId } = user;
-  const { startDate, startTime, endDate, endTime } = data;
+  const { startDate, startTime, endDate, endTime } = data || {};
 
   validateFields(files, ["event_image"]);
   validateFields(data, [
@@ -32,7 +32,6 @@ const createEvent = async (req) => {
     "endDate",
     "endTime",
     "moreInfo",
-    "maxPeople",
   ]);
 
   dateTimeValidator([startDate, endDate], [startTime, endTime]);
@@ -58,7 +57,6 @@ const createEvent = async (req) => {
     startDateTime: newStartDateTime,
     endDateTime: newEndDateTime,
     moreInfo: data.moreInfo,
-    maxPeople: data.maxPeople,
   };
 
   const event = await Event.create(eventData);

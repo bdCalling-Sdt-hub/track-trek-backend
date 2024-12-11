@@ -1,6 +1,25 @@
 const { Schema, model } = require("mongoose");
 const ObjectId = Schema.Types.ObjectId;
 
+// ------track------
+// host
+// track
+// day
+// slotNo
+// startTime
+// endTime
+// price
+// description
+
+// ------event------
+// host
+// event
+// slotNo
+// price
+// description
+// maxPeople
+// currentPeople
+
 const SlotSchema = new Schema(
   {
     host: {
@@ -46,6 +65,16 @@ const SlotSchema = new Schema(
     price: {
       type: Number,
       required: true,
+    },
+    maxPeople: {
+      type: Number,
+      min: 1,
+      required: true,
+    },
+    currentPeople: {
+      type: Number,
+      min: 0,
+      default: 0,
     },
     description: {
       type: String,
