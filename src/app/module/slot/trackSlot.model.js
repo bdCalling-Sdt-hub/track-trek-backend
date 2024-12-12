@@ -11,16 +11,7 @@ const ObjectId = Schema.Types.ObjectId;
 // price
 // description
 
-// ------event------
-// host
-// event
-// slotNo
-// price
-// description
-// maxPeople
-// currentPeople
-
-const SlotSchema = new Schema(
+const trackSlotSchema = new Schema(
   {
     host: {
       type: ObjectId,
@@ -30,11 +21,6 @@ const SlotSchema = new Schema(
     track: {
       type: ObjectId,
       ref: "Track",
-    },
-    event: {
-      type: ObjectId,
-      ref: "Event",
-      required: true,
     },
     day: {
       type: String,
@@ -49,7 +35,7 @@ const SlotSchema = new Schema(
       ],
     },
     slotNo: {
-      type: Number,
+      type: String,
       required: true,
     },
     startTime: {
@@ -76,17 +62,12 @@ const SlotSchema = new Schema(
       type: String,
       required: true,
     },
-    status: {
-      type: String,
-      enum: ["open", "booked"],
-      default: "open",
-    },
   },
   {
     timestamps: true,
   }
 );
 
-const Slot = model("Slot", SlotSchema);
+const TrackSlot = model("TrackSlot", trackSlotSchema);
 
-module.exports = Slot;
+module.exports = TrackSlot;

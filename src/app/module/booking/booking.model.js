@@ -17,13 +17,17 @@ const BookingSchema = new Schema(
       type: ObjectId,
       ref: "Track",
     },
+    trackSlot: {
+      type: ObjectId,
+      ref: "TrackSlot",
+    },
     event: {
       type: ObjectId, // *********** event ***********
       ref: "Event",
     },
-    slot: {
+    eventSlot: {
       type: ObjectId,
-      ref: "Slot",
+      ref: "EventSlot",
     },
     startDateTime: {
       type: Date,

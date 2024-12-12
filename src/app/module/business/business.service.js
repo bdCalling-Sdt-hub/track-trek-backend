@@ -13,6 +13,7 @@ const Booking = require("../booking/booking.model");
 const { model, default: mongoose } = require("mongoose");
 const Slot = require("../slot/slot.model");
 const moment = require("moment");
+const EventSlot = require("../slot/eventSlot.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -203,42 +204,85 @@ const updateTrack = async (user, payload) => {
 
 const createSlot = async (user, payload) => {
   const { userId } = user;
-  const { trackId, day, startTime, endTime } = payload || {};
+  const { trackId, eventId, day, startTime, endTime } = payload || {};
+  let slot;
 
-  validateFields(payload, [
-    "trackId",
-    "day",
-    "slotNo",
-    "startTime",
-    "endTime",
-    "price",
-    "description",
-  ]);
+  if (!trackId && !eventId)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      "trackId or eventId is required to create slot1"
+    );
 
-  dateTimeValidator([], [startTime, endTime]);
+  if (trackId) {
+    validateFields(payload, [
+      "trackId",
+      "day",
+      "slotNo",
+      "startTime",
+      "endTime",
+      "price",
+      "description",
+    ]);
 
-  const slotData = {
-    host: userId,
-    track: trackId,
-    day,
-    slotNo: payload.slotNo,
-    startTime,
-    endTime,
-    price: payload.price,
-    description: payload.description,
-  };
+    dateTimeValidator([], [startTime, endTime]);
 
-  const slot = await Slot.create(slotData);
+    const slotData = {
+      host: userId,
+      track: trackId,
+      day,
+      slotNo: payload.slotNo,
+      startTime,
+      endTime,
+      price: payload.price,
+      description: payload.description,
+    };
 
-  Promise.all([
-    Track.updateOne({ _id: trackId }, { $push: { slots: slot._id } }),
-  ]);
+    slot = await Slot.create(slotData);
 
-  postNotification(
-    "Slot Created",
-    `New slot added to track: ${trackId}`,
-    userId
-  );
+    Promise.all([
+      Track.updateOne({ _id: trackId }, { $push: { slots: slot._id } }),
+    ]);
+
+    postNotification(
+      "Slot Created",
+      `New slot added to track: ${trackId}`,
+      userId
+    );
+  }
+
+  if (eventId) {
+    validateFields(payload, [
+      "eventId",
+      "slotNo",
+      "maxPeople",
+      "price",
+      "description",
+    ]);
+
+    const event = await Event.findById(eventId);
+    if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+
+    const slotData = {
+      host: userId,
+      event: eventId,
+      slotNo: payload.slotNo,
+      maxPeople: payload.maxPeople,
+      price: payload.price,
+      description: payload.description,
+    };
+
+    slot = await EventSlot.create(slotData);
+
+    Promise.all([
+      Event.updateOne({ _id: eventId }, { $push: { slots: slot._id } }),
+    ]);
+
+    postNotification(
+      "Slot Created",
+      `New slot added to event: ${eventId}`,
+      userId
+    );
+  }
 
   return slot;
 };
