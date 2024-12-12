@@ -11,7 +11,7 @@ async function main() {
     const port =
       typeof config.port === "number" ? config.port : Number(config.port);
 
-    const server = app.listen(port, config.base_url, () => {
+    app.listen(port, config.base_url, () => {
       logger.info(`App listening on http://${config.base_url}:${config.port}`);
     });
 

@@ -44,6 +44,10 @@ const BookingSchema = new Schema(
     numOfPeople: {
       type: Number, // *********** event ***********
     },
+    bookingFor: {
+      type: String, // *********** event ***********
+      enum: ["self", "others"],
+    },
     moreInfo: [
       // *********** event ***********
       {
