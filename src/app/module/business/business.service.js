@@ -10,7 +10,7 @@ const { logger } = require("../../../shared/logger");
 const { ENUM_EVENT_STATUS } = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
-const { model, default: mongoose } = require("mongoose");
+const { default: mongoose } = require("mongoose");
 const Slot = require("../slot/slot.model");
 const moment = require("moment");
 const EventSlot = require("../slot/eventSlot.model");
@@ -69,27 +69,35 @@ const createEvent = async (req) => {
 
 const joinEvent = async (user, payload) => {
   const { userId } = user;
-  const { eventId, numOfPeople } = payload;
+  const { eventId, slotId, numOfPeople } = payload;
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  validateFields(payload, ["eventId", "price", "numOfPeople"]);
+  validateFields(payload, ["eventId", "price", "numOfPeople", "data"]);
 
-  const event = await Event.findOne({ _id: eventId });
-  if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+  const [event, slot] = await Promise.all([
+    Event.findById(eventId),
+    EventSlot.findById(slotId),
+  ]);
+
+  if (!event || !slot)
+    throw new ApiError(
+      status.NOT_FOUND,
+      `${event ? "Slot" : "Event"} not found`
+    );
   if (event.status !== ENUM_EVENT_STATUS.OPEN)
     throw new ApiError(
       status.BAD_REQUEST,
       `Event is no longer open (status: ${event.status}).`
     );
 
-  const totalPeople = event.currentPeople + numOfPeople;
-  if (totalPeople > event.maxPeople)
+  const totalPeople = slot.currentPeople + numOfPeople;
+  if (totalPeople > slot.maxPeople)
     throw new ApiError(
       status.BAD_REQUEST,
       `${
-        event.maxPeople - event.currentPeople
+        slot.maxPeople - slot.currentPeople
       } seats available. Please reduce the number of people.`
     );
 
@@ -97,10 +105,12 @@ const joinEvent = async (user, payload) => {
     user: userId,
     host: event.host,
     event: eventId,
+    eventSlot: slotId,
     startDateTime: event.startDateTime,
     endDateTime: event.endDateTime,
     price: payload.price,
     numOfPeople,
+    bookingFor: payload.bookingFor,
     moreInfo: payload.moreInfo || null,
   };
 
