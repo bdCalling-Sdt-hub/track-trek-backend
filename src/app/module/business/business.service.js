@@ -69,7 +69,7 @@ const createEvent = async (req) => {
 
 const joinEvent = async (user, payload) => {
   const { userId } = user;
-  const { eventId, slotId, data } = payload;
+  const { eventId, slotId, data, price } = payload;
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -77,8 +77,8 @@ const joinEvent = async (user, payload) => {
   validateFields(payload, ["eventId", "price", "data"]);
 
   const [event, slot] = await Promise.all([
-    Event.findById(eventId),
-    EventSlot.findById(slotId),
+    Event.findById(eventId).lean(),
+    EventSlot.findById(slotId).lean(),
   ]);
 
   if (!event || !slot)
@@ -99,31 +99,44 @@ const joinEvent = async (user, payload) => {
     throw new ApiError(status.BAD_REQUEST, `No seats available`);
 
   // map through the payload and create bookings to save
-  const bookingData = [];
-  data.map((obj) => {
+  const bookingData = data.map((obj) => {
     validateFields(obj, ["bookingFor", "moreInfo"]);
 
     if (!obj.moreInfo.length)
       throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
 
-    bookingData.push({
+    return {
       user: userId,
       host: event.host,
       event: eventId,
       eventSlot: slotId,
       startDateTime: event.startDateTime,
       endDateTime: event.endDateTime,
-      price: payload.price,
+      price,
       numOfPeople: 1,
       bookingFor: obj.bookingFor,
       moreInfo: obj.moreInfo || null,
-    });
+    };
   });
 
   try {
-    const bookings = await Booking.create(bookingData, { session });
+    const bookings = await Booking.insertMany(bookingData, { session });
+    const bookingIds = bookings.map((booking) => booking._id);
 
-    console.log(bookings);
+    const eventUpdateOperations = {
+      $inc: { currentPeople: 1 },
+      $push: { bookings: { $each: bookingIds } },
+    };
+
+    if (totalPeople === event.maxPeople)
+      eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+
+    await Event.updateOne(
+      {
+        _id: eventId,
+      },
+      eventUpdateOperations
+    ).session(session);
 
     await session.commitTransaction();
 
@@ -135,107 +148,6 @@ const joinEvent = async (user, payload) => {
     session.endSession();
   }
 };
-
-// const joinEvent = async (user, payload) => {
-//   const { userId } = user;
-//   const { eventId, slotId, data } = payload;
-
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   validateFields(payload, ["eventId", "price", "data"]);
-
-//   const [event, slot] = await Promise.all([
-//     Event.findById(eventId),
-//     EventSlot.findById(slotId),
-//   ]);
-
-//   if (!event || !slot)
-//     throw new ApiError(
-//       status.NOT_FOUND,
-//       `${event ? "Slot" : "Event"} not found`
-//     );
-
-//   if (event.status !== ENUM_EVENT_STATUS.OPEN)
-//     throw new ApiError(
-//       status.BAD_REQUEST,
-//       `Event is no longer open (status: ${event.status}).`
-//     );
-
-//   // check seat availability
-//   const totalPeople = slot.currentPeople + 1;
-//   if (totalPeople > slot.maxPeople)
-//     throw new ApiError(status.BAD_REQUEST, `No seats available`);
-
-//   // map through the payload and create bookings to save
-//   const bookingData = [];
-//   data.map((obj) => {
-//     validateFields(obj, ["bookingFor", "moreInfo"]);
-
-//     if (!obj.moreInfo.length)
-//       throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
-
-//     bookingData.push({
-//       user: userId,
-//       host: event.host,
-//       event: eventId,
-//       eventSlot: slotId,
-//       startDateTime: event.startDateTime,
-//       endDateTime: event.endDateTime,
-//       price: payload.price,
-//       numOfPeople: 1,
-//       bookingFor: obj.bookingFor,
-//       moreInfo: obj.moreInfo || null,
-//     });
-//   });
-
-//   try {
-//     const saveBookingToDB = async (booking) => {
-//       return Booking.create([booking], { session });
-//       // return Booking.create(booking);
-//     };
-
-//     const promises = bookingData.map((booking) => saveBookingToDB(booking));
-//     console.log(promises);
-
-//     const bookings = await Promise.all(promises);
-//     console.log(bookings);
-//     // let bookings;
-
-//     // const bookings = await Booking.create(bookingData, { session });
-//     // const bookings = await Booking.create(promises, { session });
-
-//     // const bookings = await Booking.create([bookingData[0]], { session });
-
-//     // const bookingIds = bookings.map((booking) => booking._id);
-
-//     console.log(bookings);
-//     // console.log(bookingIds);
-
-//     // await Event.updateOne(
-//     //   { _id: eventId },
-//     //   {
-//     //     $inc: { currentPeople: 1 },
-//     //     $push: { bookings: { $each: bookingIds } },
-//     //   }
-//     // ).session(session);
-
-//     // if (totalPeople === event.maxPeople)
-//     //   await Event.updateOne(
-//     //     { _id: eventId },
-//     //     { status: ENUM_EVENT_STATUS.FULL }
-//     //   ).session(session);
-
-//     await session.commitTransaction();
-
-//     return bookings;
-//   } catch (error) {
-//     await session.abortTransaction();
-//     throw new ApiError(status.BAD_REQUEST, error.message);
-//   } finally {
-//     session.endSession();
-//   }
-// };
 
 const createTrack = async (req) => {
   const { user, body: payload, files } = req;
