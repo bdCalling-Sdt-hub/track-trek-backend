@@ -69,12 +69,12 @@ const createEvent = async (req) => {
 
 const joinEvent = async (user, payload) => {
   const { userId } = user;
-  const { eventId, slotId, numOfPeople } = payload;
+  const { eventId, slotId, data } = payload;
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  validateFields(payload, ["eventId", "price", "numOfPeople", "data"]);
+  validateFields(payload, ["eventId", "price", "data"]);
 
   const [event, slot] = await Promise.all([
     Event.findById(eventId),
@@ -86,54 +86,48 @@ const joinEvent = async (user, payload) => {
       status.NOT_FOUND,
       `${event ? "Slot" : "Event"} not found`
     );
+
   if (event.status !== ENUM_EVENT_STATUS.OPEN)
     throw new ApiError(
       status.BAD_REQUEST,
       `Event is no longer open (status: ${event.status}).`
     );
 
-  const totalPeople = slot.currentPeople + numOfPeople;
+  // check seat availability
+  const totalPeople = slot.currentPeople + 1;
   if (totalPeople > slot.maxPeople)
-    throw new ApiError(
-      status.BAD_REQUEST,
-      `${
-        slot.maxPeople - slot.currentPeople
-      } seats available. Please reduce the number of people.`
-    );
+    throw new ApiError(status.BAD_REQUEST, `No seats available`);
 
-  const bookingData = {
-    user: userId,
-    host: event.host,
-    event: eventId,
-    eventSlot: slotId,
-    startDateTime: event.startDateTime,
-    endDateTime: event.endDateTime,
-    price: payload.price,
-    numOfPeople,
-    bookingFor: payload.bookingFor,
-    moreInfo: payload.moreInfo || null,
-  };
+  // map through the payload and create bookings to save
+  const bookingData = [];
+  data.map((obj) => {
+    validateFields(obj, ["bookingFor", "moreInfo"]);
+
+    if (!obj.moreInfo.length)
+      throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
+
+    bookingData.push({
+      user: userId,
+      host: event.host,
+      event: eventId,
+      eventSlot: slotId,
+      startDateTime: event.startDateTime,
+      endDateTime: event.endDateTime,
+      price: payload.price,
+      numOfPeople: 1,
+      bookingFor: obj.bookingFor,
+      moreInfo: obj.moreInfo || null,
+    });
+  });
 
   try {
-    const booking = await Booking.create([bookingData], { session });
+    const bookings = await Booking.create(bookingData, { session });
 
-    await Event.updateOne(
-      { _id: eventId },
-      {
-        $inc: { currentPeople: numOfPeople },
-        $push: { bookings: booking[0]._id },
-      }
-    ).session(session);
-
-    if (totalPeople === event.maxPeople)
-      await Event.updateOne(
-        { _id: eventId },
-        { status: ENUM_EVENT_STATUS.FULL }
-      ).session(session);
+    console.log(bookings);
 
     await session.commitTransaction();
 
-    return booking[0];
+    return bookings;
   } catch (error) {
     await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);
@@ -141,6 +135,107 @@ const joinEvent = async (user, payload) => {
     session.endSession();
   }
 };
+
+// const joinEvent = async (user, payload) => {
+//   const { userId } = user;
+//   const { eventId, slotId, data } = payload;
+
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   validateFields(payload, ["eventId", "price", "data"]);
+
+//   const [event, slot] = await Promise.all([
+//     Event.findById(eventId),
+//     EventSlot.findById(slotId),
+//   ]);
+
+//   if (!event || !slot)
+//     throw new ApiError(
+//       status.NOT_FOUND,
+//       `${event ? "Slot" : "Event"} not found`
+//     );
+
+//   if (event.status !== ENUM_EVENT_STATUS.OPEN)
+//     throw new ApiError(
+//       status.BAD_REQUEST,
+//       `Event is no longer open (status: ${event.status}).`
+//     );
+
+//   // check seat availability
+//   const totalPeople = slot.currentPeople + 1;
+//   if (totalPeople > slot.maxPeople)
+//     throw new ApiError(status.BAD_REQUEST, `No seats available`);
+
+//   // map through the payload and create bookings to save
+//   const bookingData = [];
+//   data.map((obj) => {
+//     validateFields(obj, ["bookingFor", "moreInfo"]);
+
+//     if (!obj.moreInfo.length)
+//       throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
+
+//     bookingData.push({
+//       user: userId,
+//       host: event.host,
+//       event: eventId,
+//       eventSlot: slotId,
+//       startDateTime: event.startDateTime,
+//       endDateTime: event.endDateTime,
+//       price: payload.price,
+//       numOfPeople: 1,
+//       bookingFor: obj.bookingFor,
+//       moreInfo: obj.moreInfo || null,
+//     });
+//   });
+
+//   try {
+//     const saveBookingToDB = async (booking) => {
+//       return Booking.create([booking], { session });
+//       // return Booking.create(booking);
+//     };
+
+//     const promises = bookingData.map((booking) => saveBookingToDB(booking));
+//     console.log(promises);
+
+//     const bookings = await Promise.all(promises);
+//     console.log(bookings);
+//     // let bookings;
+
+//     // const bookings = await Booking.create(bookingData, { session });
+//     // const bookings = await Booking.create(promises, { session });
+
+//     // const bookings = await Booking.create([bookingData[0]], { session });
+
+//     // const bookingIds = bookings.map((booking) => booking._id);
+
+//     console.log(bookings);
+//     // console.log(bookingIds);
+
+//     // await Event.updateOne(
+//     //   { _id: eventId },
+//     //   {
+//     //     $inc: { currentPeople: 1 },
+//     //     $push: { bookings: { $each: bookingIds } },
+//     //   }
+//     // ).session(session);
+
+//     // if (totalPeople === event.maxPeople)
+//     //   await Event.updateOne(
+//     //     { _id: eventId },
+//     //     { status: ENUM_EVENT_STATUS.FULL }
+//     //   ).session(session);
+
+//     await session.commitTransaction();
+
+//     return bookings;
+//   } catch (error) {
+//     await session.abortTransaction();
+//     throw new ApiError(status.BAD_REQUEST, error.message);
+//   } finally {
+//     session.endSession();
+//   }
+// };
 
 const createTrack = async (req) => {
   const { user, body: payload, files } = req;
