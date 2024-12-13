@@ -70,9 +70,9 @@ const createEvent = async (req) => {
 const joinEvent = async (user, payload) => {
   const { userId } = user;
   const { eventId, slotId, data, price } = payload;
+  let bookings = [];
 
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   validateFields(payload, ["eventId", "price", "data"]);
 
@@ -120,23 +120,26 @@ const joinEvent = async (user, payload) => {
   });
 
   try {
-    const bookings = await Booking.insertMany(bookingData, { session });
-    const bookingIds = bookings.map((booking) => booking._id);
+    await session.withTransaction(async () => {
+      bookings = await Booking.insertMany(bookingData, { session });
+      const bookingIds = bookings.map((booking) => booking._id);
 
-    const eventUpdateOperations = {
-      $inc: { currentPeople: 1 },
-      $push: { bookings: { $each: bookingIds } },
-    };
+      const eventUpdateOperations = {
+        $inc: { currentPeople: 1 },
+        $push: { bookings: { $each: bookingIds } },
+      };
 
-    if (totalPeople === event.maxPeople)
-      eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+      if (totalPeople === event.maxPeople)
+        eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
 
-    await Event.updateOne(
-      {
-        _id: eventId,
-      },
-      eventUpdateOperations
-    ).session(session);
+      await Event.updateOne(
+        {
+          _id: eventId,
+        },
+        eventUpdateOperations,
+        { new: true }
+      ).session(session);
+    });
 
     await session.commitTransaction();
 
