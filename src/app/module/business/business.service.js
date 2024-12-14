@@ -7,7 +7,7 @@ const Track = require("../track/track.model");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
 const { isValidDate } = require("../../../util/isValidDate");
 const { logger } = require("../../../shared/logger");
-const { ENUM_EVENT_STATUS } = require("../../../util/enum");
+const { ENUM_EVENT_STATUS, ENUM_SLOT_STATUS } = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
@@ -94,11 +94,14 @@ const joinEvent = async (user, payload) => {
     );
 
   // check seat availability
-  const totalPeople = slot.currentPeople + 1;
+  const totalPeople = slot.currentPeople + data.length;
   if (totalPeople > slot.maxPeople)
-    throw new ApiError(status.BAD_REQUEST, `No seats available`);
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `${slot.maxPeople - slot.currentPeople} seats available`
+    );
 
-  // map through the payload and create bookings to save
+  // preparing the bookings for saving
   const bookingData = data.map((obj) => {
     validateFields(obj, ["bookingFor", "moreInfo"]);
 
@@ -112,7 +115,7 @@ const joinEvent = async (user, payload) => {
       eventSlot: slotId,
       startDateTime: event.startDateTime,
       endDateTime: event.endDateTime,
-      price,
+      price: Number((price / data.length).toFixed(2)),
       numOfPeople: 1,
       bookingFor: obj.bookingFor,
       moreInfo: obj.moreInfo || null,
@@ -121,24 +124,36 @@ const joinEvent = async (user, payload) => {
 
   try {
     await session.withTransaction(async () => {
-      bookings = await Booking.insertMany(bookingData, { session });
+      bookings = await Booking.create(bookingData, { session });
       const bookingIds = bookings.map((booking) => booking._id);
 
       const eventUpdateOperations = {
-        $inc: { currentPeople: 1 },
         $push: { bookings: { $each: bookingIds } },
       };
+      const slotUpdateOperations = {
+        $inc: { currentPeople: bookingData.length },
+      };
+      console.log(totalPeople, slot.maxPeople);
 
-      if (totalPeople === event.maxPeople)
+      if (totalPeople === slot.maxPeople) {
         eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+        slotUpdateOperations.$set = { status: ENUM_SLOT_STATUS.BOOKED };
+      }
 
-      await Event.updateOne(
-        {
-          _id: eventId,
-        },
-        eventUpdateOperations,
-        { new: true }
-      ).session(session);
+      await Promise.all([
+        Event.updateOne(
+          {
+            _id: eventId,
+          },
+          eventUpdateOperations
+        ).session(session),
+        EventSlot.updateOne(
+          {
+            _id: slotId,
+          },
+          slotUpdateOperations
+        ).session(session),
+      ]);
     });
 
     await session.commitTransaction();
