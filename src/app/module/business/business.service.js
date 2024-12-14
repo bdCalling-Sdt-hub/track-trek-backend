@@ -7,7 +7,7 @@ const Track = require("../track/track.model");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
 const { isValidDate } = require("../../../util/isValidDate");
 const { logger } = require("../../../shared/logger");
-const { ENUM_EVENT_STATUS } = require("../../../util/enum");
+const { ENUM_EVENT_STATUS, ENUM_SLOT_STATUS } = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
@@ -69,16 +69,16 @@ const createEvent = async (req) => {
 
 const joinEvent = async (user, payload) => {
   const { userId } = user;
-  const { eventId, slotId, numOfPeople } = payload;
+  const { eventId, slotId, data, price } = payload;
+  let bookings = [];
 
   const session = await mongoose.startSession();
-  session.startTransaction();
 
-  validateFields(payload, ["eventId", "price", "numOfPeople", "data"]);
+  validateFields(payload, ["eventId", "price", "data"]);
 
   const [event, slot] = await Promise.all([
-    Event.findById(eventId),
-    EventSlot.findById(slotId),
+    Event.findById(eventId).lean(),
+    EventSlot.findById(slotId).lean(),
   ]);
 
   if (!event || !slot)
@@ -86,54 +86,79 @@ const joinEvent = async (user, payload) => {
       status.NOT_FOUND,
       `${event ? "Slot" : "Event"} not found`
     );
+
   if (event.status !== ENUM_EVENT_STATUS.OPEN)
     throw new ApiError(
       status.BAD_REQUEST,
       `Event is no longer open (status: ${event.status}).`
     );
 
-  const totalPeople = slot.currentPeople + numOfPeople;
+  // check seat availability
+  const totalPeople = slot.currentPeople + data.length;
   if (totalPeople > slot.maxPeople)
     throw new ApiError(
       status.BAD_REQUEST,
-      `${
-        slot.maxPeople - slot.currentPeople
-      } seats available. Please reduce the number of people.`
+      `${slot.maxPeople - slot.currentPeople} seats available`
     );
 
-  const bookingData = {
-    user: userId,
-    host: event.host,
-    event: eventId,
-    eventSlot: slotId,
-    startDateTime: event.startDateTime,
-    endDateTime: event.endDateTime,
-    price: payload.price,
-    numOfPeople,
-    bookingFor: payload.bookingFor,
-    moreInfo: payload.moreInfo || null,
-  };
+  // preparing the bookings for saving
+  const bookingData = data.map((obj) => {
+    validateFields(obj, ["bookingFor", "moreInfo"]);
+
+    if (!obj.moreInfo.length)
+      throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
+
+    return {
+      user: userId,
+      host: event.host,
+      event: eventId,
+      eventSlot: slotId,
+      startDateTime: event.startDateTime,
+      endDateTime: event.endDateTime,
+      price: Number((price / data.length).toFixed(2)),
+      numOfPeople: 1,
+      bookingFor: obj.bookingFor,
+      moreInfo: obj.moreInfo || null,
+    };
+  });
 
   try {
-    const booking = await Booking.create([bookingData], { session });
+    await session.withTransaction(async () => {
+      bookings = await Booking.create(bookingData, { session });
+      const bookingIds = bookings.map((booking) => booking._id);
 
-    await Event.updateOne(
-      { _id: eventId },
-      {
-        $inc: { currentPeople: numOfPeople },
-        $push: { bookings: booking[0]._id },
+      const eventUpdateOperations = {
+        $push: { bookings: { $each: bookingIds } },
+      };
+      const slotUpdateOperations = {
+        $inc: { currentPeople: bookingData.length },
+      };
+      console.log(totalPeople, slot.maxPeople);
+
+      if (totalPeople === slot.maxPeople) {
+        eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+        slotUpdateOperations.$set = { status: ENUM_SLOT_STATUS.BOOKED };
       }
-    ).session(session);
 
-    if (totalPeople === event.maxPeople)
-      await Event.updateOne(
-        { _id: eventId },
-        { status: ENUM_EVENT_STATUS.FULL }
-      ).session(session);
+      await Promise.all([
+        Event.updateOne(
+          {
+            _id: eventId,
+          },
+          eventUpdateOperations
+        ).session(session),
+        EventSlot.updateOne(
+          {
+            _id: slotId,
+          },
+          slotUpdateOperations
+        ).session(session),
+      ]);
+    });
 
     await session.commitTransaction();
 
-    return booking[0];
+    return bookings;
   } catch (error) {
     await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);
