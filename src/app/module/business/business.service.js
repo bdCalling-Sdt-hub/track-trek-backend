@@ -14,6 +14,7 @@ const { default: mongoose } = require("mongoose");
 const Slot = require("../slot/slot.model");
 const moment = require("moment");
 const EventSlot = require("../slot/eventSlot.model");
+const TrackSlot = require("../slot/trackSlot.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -256,6 +257,7 @@ const createSlot = async (user, payload) => {
       "startTime",
       "endTime",
       "price",
+      "maxPeople",
       "description",
     ]);
 
@@ -269,10 +271,11 @@ const createSlot = async (user, payload) => {
       startTime,
       endTime,
       price: payload.price,
+      maxPeople: payload.maxPeople,
       description: payload.description,
     };
 
-    slot = await Slot.create(slotData);
+    slot = await TrackSlot.create(slotData);
 
     Promise.all([
       Track.updateOne({ _id: trackId }, { $push: { slots: slot._id } }),
@@ -320,6 +323,25 @@ const createSlot = async (user, payload) => {
   }
 
   return slot;
+};
+
+const deleteSlot = async (user, payload) => {
+  validateFields(payload, ["slotId"]);
+
+  const { slotId } = payload;
+
+  const result = await TrackSlot.deleteOne({ _id: slotId });
+
+  if (!result.deletedCount)
+    throw new ApiError(status.NOT_FOUND, "No slots found");
+
+  postNotification(
+    "Slot Deleted",
+    `Slot: ${slotId} has been deleted`,
+    user.userId
+  );
+
+  return result;
 };
 
 const searchForSlots = async (query) => {
@@ -549,6 +571,7 @@ const BusinessService = {
   createTrack,
   updateTrack,
   createSlot,
+  deleteSlot,
   searchForSlots,
   bookASlot,
   getSingleBusiness,
