@@ -52,6 +52,16 @@ const createSlot = catchAsync(async (req, res) => {
   });
 });
 
+const deleteSlot = catchAsync(async (req, res) => {
+  const result = await BusinessService.deleteSlot(req.user, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Track Slot deleted",
+    data: result,
+  });
+});
+
 const searchForSlots = catchAsync(async (req, res) => {
   const result = await BusinessService.searchForSlots(req.query);
   sendResponse(res, {
@@ -118,6 +128,7 @@ const BusinessController = {
   createTrack,
   updateTrack,
   createSlot,
+  deleteSlot,
   searchForSlots,
   bookASlot,
   getSingleBusiness,
