@@ -1,16 +1,6 @@
 const { Schema, model } = require("mongoose");
 const ObjectId = Schema.Types.ObjectId;
 
-// ------track------
-// host
-// track
-// day
-// slotNo
-// startTime
-// endTime
-// price
-// description
-
 const trackSlotSchema = new Schema(
   {
     host: {
