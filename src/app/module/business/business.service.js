@@ -11,7 +11,6 @@ const { ENUM_EVENT_STATUS, ENUM_SLOT_STATUS } = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
-const Slot = require("../slot/slot.model");
 const moment = require("moment");
 const EventSlot = require("../slot/eventSlot.model");
 const TrackSlot = require("../slot/trackSlot.model");
@@ -344,88 +343,6 @@ const deleteSlot = async (user, payload) => {
   return result;
 };
 
-// const searchForSlots = async (query) => {
-//   const { date, trackId } = query || {};
-
-//   validateFields(query, ["date", "trackId"]);
-
-//   dateTimeValidator([date], []);
-
-//   const dayOfWeek = moment(date).format("dddd"); // e.g., 'Monday', 'Tuesday'
-//   // console.log(dayOfWeek);
-
-//   const bookedSlots = await Booking.find({
-//     trackSlot: { $exists: true },
-//     startDateTime: {
-//       $gte: moment(date).startOf("day").toDate(),
-//       $lt: moment(date).endOf("day").toDate(),
-//     },
-//   });
-//   // console.log(bookedSlots);
-
-//   const newData = Object.values(
-//     bookedSlots.reduce((acc, { trackSlot, numOfPeople }) => {
-//       if (!acc[trackSlot]) {
-//         acc[trackSlot] = { _id: trackSlot, numOfPeople: 0 };
-//       }
-//       // console.log(acc[trackSlot].numOfPeople);
-//       acc[trackSlot].numOfPeople += numOfPeople;
-
-//       return acc;
-//     }, {})
-//   );
-
-//   console.log(newData);
-//   // const newData = bookedSlots.map((booking) => {
-//   //   return {
-//   //     // track: booking.track,
-//   //     trackSlot: booking.trackSlot,
-//   //     numOfPeople: booking.numOfPeople,
-//   //   };
-//   // });
-
-//   const bookedSlotIds = bookedSlots.map((booking) => booking.trackSlot);
-
-//   const uniqueIds = [...new Set(bookedSlotIds.map((id) => id.toString()))].map(
-//     (id) => mongoose.Types.ObjectId.createFromHexString(id)
-//   );
-
-//   // console.log(bookedSlotIds);
-//   // console.log(uniqueIds);
-
-//   const slots = await TrackSlot.find({ _id: { $in: uniqueIds } });
-
-//   // console.log(slots);
-
-//   const mappedSlotIds = new Map(slots.map((obj) => [obj._id.toString(), obj]));
-
-//   // console.log(mappedSlotIds);
-
-//   const unavailableSlotIds = [];
-//   newData.map((obj) => {
-//     const match = mappedSlotIds.get(obj._id.toString());
-//     // console.log(match);
-//     if (obj.numOfPeople >= match.maxPeople) {
-//       console.log(obj.numOfPeople, match.maxPeople);
-//       unavailableSlotIds.push(obj._id);
-//     }
-//   });
-//   // console.log(unavailableSlotIds);
-
-//   // const availableSlots = slots.filter((slot) => slot._id.toString() !== "");
-
-//   const availableSlots = await TrackSlot.find({
-//     _id: { $nin: unavailableSlotIds },
-//     track: trackId,
-//     day: dayOfWeek,
-//   });
-
-//   if (!availableSlots.length)
-//     throw new ApiError(status.NOT_FOUND, "No slots available");
-
-//   return { count: availableSlots.length, availableSlots };
-// };
-
 const searchForSlots = async (query) => {
   const { date, trackId } = query || {};
 
@@ -455,6 +372,7 @@ const searchForSlots = async (query) => {
   );
 
   const bookedSlotIds = bookedSlots.map((booking) => booking.trackSlot);
+
   const slots = await TrackSlot.find({ _id: { $in: bookedSlotIds } });
 
   const mappedSlotIds = new Map(slots.map((obj) => [obj._id.toString(), obj]));
@@ -462,9 +380,7 @@ const searchForSlots = async (query) => {
   const unavailableSlotIds = [];
   newData.map((obj) => {
     const match = mappedSlotIds.get(obj._id.toString());
-
     if (obj.numOfPeople >= match.maxPeople) {
-      console.log(obj.numOfPeople, match.maxPeople);
       unavailableSlotIds.push(obj._id);
     }
   });
@@ -474,9 +390,6 @@ const searchForSlots = async (query) => {
     track: trackId,
     day: dayOfWeek,
   });
-  // const availableSlots = slots.filter(
-  //   (slot) => unavailableSlotIds.includes(slot._id.toString())
-  // );
 
   if (!availableSlots.length)
     throw new ApiError(status.NOT_FOUND, "No slots available");
@@ -489,11 +402,9 @@ const bookASlot = async (user, payload) => {
   const { slotId, numOfPeople, date } = payload || {};
 
   validateFields(payload, ["slotId", "numOfPeople", "date"]);
-
   dateTimeValidator([date], []);
 
   const slot = await TrackSlot.findById(slotId);
-
   if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
 
   const bookingData = {
@@ -509,7 +420,6 @@ const bookASlot = async (user, payload) => {
 
   const booking = await Booking.create(bookingData);
 
-  // return bookingData;
   return booking;
 };
 
@@ -583,33 +493,48 @@ const getMyBusiness = async (user, query) => {
 };
 
 const getAllBusiness = async (query) => {
-  const { event, track, ...newQuery } = query;
+  const { event, track, longitude, latitude, ...newQuery } = query || {};
+  let events = [];
+  let tracks = [];
+  let trackMeta = {};
+  let eventMeta = {};
+  const searchFilters = {};
+
+  if (longitude && latitude) {
+    searchFilters.location = {
+      $nearSphere: {
+        $geometry: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)],
+        },
+        $maxDistance: 300000,
+      },
+    };
+  }
 
   if (event) {
-    const eventQuery = new QueryBuilder(Event.find({}).lean(), newQuery)
+    const eventQuery = new QueryBuilder(
+      Event.find(searchFilters).lean(),
+      newQuery
+    )
       .search(["eventName", "address", "description"])
       .filter()
       .sort()
       .paginate()
       .fields();
 
-    const [events, meta] = await Promise.all([
+    [events, eventMeta] = await Promise.all([
       eventQuery.modelQuery,
       eventQuery.countTotal(),
     ]);
 
     if (!events.length)
       throw new ApiError(status.NOT_FOUND, "Events not found");
-
-    return {
-      meta,
-      events,
-    };
   }
 
   if (track) {
     const trackQuery = new QueryBuilder(
-      Track.find({}).populate("host").lean(),
+      Track.find(searchFilters).populate("host").lean(),
       newQuery
     )
       .search(["trackName", "address", "description"])
@@ -618,19 +543,21 @@ const getAllBusiness = async (query) => {
       .paginate()
       .fields();
 
-    const [tracks, meta] = await Promise.all([
+    [tracks, trackMeta] = await Promise.all([
       trackQuery.modelQuery,
       trackQuery.countTotal(),
     ]);
 
     if (!tracks.length)
       throw new ApiError(status.NOT_FOUND, "Tracks not found");
-
-    return {
-      meta,
-      tracks,
-    };
   }
+
+  return {
+    eventMeta,
+    trackMeta,
+    tracks,
+    events,
+  };
 };
 
 const deleteBusiness = async (query) => {
