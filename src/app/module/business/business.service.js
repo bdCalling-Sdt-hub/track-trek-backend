@@ -344,54 +344,167 @@ const deleteSlot = async (user, payload) => {
   return result;
 };
 
+// const searchForSlots = async (query) => {
+//   const { date, trackId } = query || {};
+
+//   validateFields(query, ["date", "trackId"]);
+
+//   dateTimeValidator([date], []);
+
+//   const dayOfWeek = moment(date).format("dddd"); // e.g., 'Monday', 'Tuesday'
+//   // console.log(dayOfWeek);
+
+//   const bookedSlots = await Booking.find({
+//     trackSlot: { $exists: true },
+//     startDateTime: {
+//       $gte: moment(date).startOf("day").toDate(),
+//       $lt: moment(date).endOf("day").toDate(),
+//     },
+//   });
+//   // console.log(bookedSlots);
+
+//   const newData = Object.values(
+//     bookedSlots.reduce((acc, { trackSlot, numOfPeople }) => {
+//       if (!acc[trackSlot]) {
+//         acc[trackSlot] = { _id: trackSlot, numOfPeople: 0 };
+//       }
+//       // console.log(acc[trackSlot].numOfPeople);
+//       acc[trackSlot].numOfPeople += numOfPeople;
+
+//       return acc;
+//     }, {})
+//   );
+
+//   console.log(newData);
+//   // const newData = bookedSlots.map((booking) => {
+//   //   return {
+//   //     // track: booking.track,
+//   //     trackSlot: booking.trackSlot,
+//   //     numOfPeople: booking.numOfPeople,
+//   //   };
+//   // });
+
+//   const bookedSlotIds = bookedSlots.map((booking) => booking.trackSlot);
+
+//   const uniqueIds = [...new Set(bookedSlotIds.map((id) => id.toString()))].map(
+//     (id) => mongoose.Types.ObjectId.createFromHexString(id)
+//   );
+
+//   // console.log(bookedSlotIds);
+//   // console.log(uniqueIds);
+
+//   const slots = await TrackSlot.find({ _id: { $in: uniqueIds } });
+
+//   // console.log(slots);
+
+//   const mappedSlotIds = new Map(slots.map((obj) => [obj._id.toString(), obj]));
+
+//   // console.log(mappedSlotIds);
+
+//   const unavailableSlotIds = [];
+//   newData.map((obj) => {
+//     const match = mappedSlotIds.get(obj._id.toString());
+//     // console.log(match);
+//     if (obj.numOfPeople >= match.maxPeople) {
+//       console.log(obj.numOfPeople, match.maxPeople);
+//       unavailableSlotIds.push(obj._id);
+//     }
+//   });
+//   // console.log(unavailableSlotIds);
+
+//   // const availableSlots = slots.filter((slot) => slot._id.toString() !== "");
+
+//   const availableSlots = await TrackSlot.find({
+//     _id: { $nin: unavailableSlotIds },
+//     track: trackId,
+//     day: dayOfWeek,
+//   });
+
+//   if (!availableSlots.length)
+//     throw new ApiError(status.NOT_FOUND, "No slots available");
+
+//   return { count: availableSlots.length, availableSlots };
+// };
+
 const searchForSlots = async (query) => {
   const { date, trackId } = query || {};
 
   validateFields(query, ["date", "trackId"]);
-
   dateTimeValidator([date], []);
 
-  const dayOfWeek = moment(date).format("dddd"); // e.g., 'Monday', 'Tuesday'
+  const dayOfWeek = moment(date).format("dddd"); // 'Monday', 'Tuesday'
+  const startDate = moment(date).startOf("day").toDate();
+  const endDate = moment(date).endOf("day").toDate();
 
   const bookedSlots = await Booking.find({
-    slot: { $exists: true },
+    trackSlot: { $exists: true },
     startDateTime: {
-      $gte: moment(date).startOf("day").toDate(),
-      $lt: moment(date).endOf("day").toDate(),
+      $gte: startDate,
+      $lt: endDate,
     },
   });
 
-  const bookedSlotIds = bookedSlots.map((booking) => booking.slot);
+  const newData = Object.values(
+    bookedSlots.reduce((acc, { trackSlot, numOfPeople }) => {
+      if (!acc[trackSlot]) {
+        acc[trackSlot] = { _id: trackSlot, numOfPeople: 0 };
+      }
+      acc[trackSlot].numOfPeople += numOfPeople;
+      return acc;
+    }, {})
+  );
 
-  const slots = await Slot.find({
-    _id: { $nin: bookedSlotIds },
+  const bookedSlotIds = bookedSlots.map((booking) => booking.trackSlot);
+  const slots = await TrackSlot.find({ _id: { $in: bookedSlotIds } });
+
+  const mappedSlotIds = new Map(slots.map((obj) => [obj._id.toString(), obj]));
+
+  const unavailableSlotIds = [];
+  newData.map((obj) => {
+    const match = mappedSlotIds.get(obj._id.toString());
+
+    if (obj.numOfPeople >= match.maxPeople) {
+      console.log(obj.numOfPeople, match.maxPeople);
+      unavailableSlotIds.push(obj._id);
+    }
+  });
+
+  const availableSlots = await TrackSlot.find({
+    _id: { $nin: unavailableSlotIds },
     track: trackId,
     day: dayOfWeek,
   });
+  // const availableSlots = slots.filter(
+  //   (slot) => unavailableSlotIds.includes(slot._id.toString())
+  // );
 
-  if (!slots.length) throw new ApiError(status.NOT_FOUND, "No slots available");
+  if (!availableSlots.length)
+    throw new ApiError(status.NOT_FOUND, "No slots available");
 
-  return { count: slots.length, slots };
+  return { count: availableSlots.length, availableSlots };
 };
 
 const bookASlot = async (user, payload) => {
   const { userId } = user;
-  const { slotId, date } = payload || {};
+  const { slotId, numOfPeople, date } = payload || {};
 
-  validateFields(payload, ["slotId", "date"]);
+  validateFields(payload, ["slotId", "numOfPeople", "date"]);
 
   dateTimeValidator([date], []);
 
-  const slot = await Slot.findById(slotId);
+  const slot = await TrackSlot.findById(slotId);
+
+  if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
 
   const bookingData = {
     user: userId,
     host: slot.host,
     track: slot.track,
-    slot: slot._id,
+    trackSlot: slot._id,
     startDateTime: new Date(`${date} ${slot.startTime}`),
     endDateTime: new Date(`${date} ${slot.endTime}`),
-    price: slot.price,
+    price: slot.price * Number(numOfPeople),
+    numOfPeople,
   };
 
   const booking = await Booking.create(bookingData);
