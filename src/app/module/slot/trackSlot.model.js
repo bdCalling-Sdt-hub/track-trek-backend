@@ -43,11 +43,11 @@ const trackSlotSchema = new Schema(
       min: 1,
       required: true,
     },
-    currentPeople: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
+    // currentPeople: {
+    //   type: Number,
+    //   min: 0,
+    //   default: 0,
+    // },
     description: {
       type: String,
       required: true,

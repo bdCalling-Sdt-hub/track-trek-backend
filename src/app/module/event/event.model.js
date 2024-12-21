@@ -75,7 +75,7 @@ const EventSchema = new Schema(
     slots: [
       {
         type: ObjectId,
-        ref: "Slot",
+        ref: "EventSlot",
       },
     ],
     bookings: [
