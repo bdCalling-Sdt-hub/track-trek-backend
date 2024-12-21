@@ -87,11 +87,11 @@ const joinEvent = async (user, payload) => {
       `${event ? "Slot" : "Event"} not found`
     );
 
-  if (event.status !== ENUM_EVENT_STATUS.OPEN)
-    throw new ApiError(
-      status.BAD_REQUEST,
-      `Event is no longer open (status: ${event.status}).`
-    );
+  // if (event.status !== ENUM_EVENT_STATUS.OPEN)
+  //   throw new ApiError(
+  //     status.BAD_REQUEST,
+  //     `Event is no longer open (status: ${event.status}).`
+  //   );
 
   // check seat availability
   const totalPeople = slot.currentPeople + data.length;
@@ -430,10 +430,13 @@ const getSingleBusiness = async (query) => {
     throw new ApiError(status.NOT_FOUND, "Missing eventId or trackId");
 
   if (eventId) {
-    const event = await Event.findOne({ _id: eventId }).lean();
-    if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
-
     if (participants) {
+      const event = await Event.findOne({ _id: eventId })
+        .select("bookings")
+        .lean();
+
+      if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+
       const bookings = await Booking.find({ _id: { $in: event.bookings } })
         .populate({
           path: "user",
@@ -443,9 +446,30 @@ const getSingleBusiness = async (query) => {
         .lean();
 
       return { count: bookings.length, bookings };
-    }
+    } else {
+      const [event, bookings, slots] = await Promise.all([
+        Event.findOne({ _id: eventId }).populate({ path: "slots" }).lean(),
+        Booking.find({ event: eventId })
+          .select("eventSlot numOfPeople -_id")
+          .lean(),
+        EventSlot.find({ event: eventId }).lean(),
+      ]);
 
-    return event;
+      if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+
+      const bookedSeats = bookings.reduce((acc, booking) => {
+        return acc + booking.numOfPeople;
+      }, 0);
+      const totalSeat = slots.reduce((acc, slot) => {
+        return acc + slot.maxPeople;
+      }, 0);
+
+      return {
+        totalSeat,
+        unSold: totalSeat - bookedSeats,
+        ...event,
+      };
+    }
   }
 
   if (trackId) {
@@ -613,3 +637,31 @@ const BusinessService = {
 };
 
 module.exports = { BusinessService };
+
+// const uniqueSlotTotalBookings = Object.values(
+//   bookings.reduce((acc, { eventSlot, numOfPeople }) => {
+//     // console.log(eventSlot, numOfPeople);
+//     if (!acc[eventSlot]) {
+//       acc[eventSlot] = { eventSlot, numOfPeople: 0 };
+//     }
+
+//     acc[eventSlot].numOfPeople += numOfPeople;
+//     return acc;
+//   }, {})
+// );
+
+// console.log(uniqueSlotTotalBookings);
+
+// const newEventSlots = [...slots];
+
+// newEventSlots.map((slot) => {
+//   uniqueSlotTotalBookings.find((uniqueSlot) => {
+//     if (uniqueSlot.eventSlot.toString() === slot._id.toString()) {
+//       console.log(slot);
+//     }
+//     // uniqueSlot.eventSlot.toString() === slot._id.toString();
+//     // console.log("found");
+//     // console.log(uniqueSlot.eventSlot.toString() === slot._id.toString());
+//   });
+//   // console.log(slot._id);
+// });

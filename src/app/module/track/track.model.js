@@ -59,7 +59,7 @@ const TrackSchema = new Schema(
     slots: [
       {
         type: ObjectId,
-        ref: "Slot",
+        ref: "TrackSlot",
       },
     ],
     totalLikes: {
