@@ -493,11 +493,16 @@ const getMyBusiness = async (user, query) => {
 };
 
 const getAllBusiness = async (query) => {
-  const { event, track, longitude, latitude, ...newQuery } = query || {};
+  const {
+    event,
+    track,
+    longitude,
+    latitude,
+    category,
+    status: eventStatus,
+  } = query || {};
   let events = [];
   let tracks = [];
-  let trackMeta = {};
-  let eventMeta = {};
   const searchFilters = {};
 
   if (longitude && latitude) {
@@ -513,48 +518,35 @@ const getAllBusiness = async (query) => {
   }
 
   if (event) {
-    const eventQuery = new QueryBuilder(
-      Event.find(searchFilters).lean(),
-      newQuery
-    )
-      .search(["eventName", "address", "description"])
-      .filter()
-      .sort()
-      .paginate()
-      .fields();
+    if (eventStatus) searchFilters.status = eventStatus;
+    events = await Event.find(searchFilters)
+      .select(
+        `
+        -moreInfo 
+        -bookings 
+        -startDateTime 
+        -endDateTime
+        -createdAt
+        -updatedAt
+        -__v
+        `
+      )
+      .lean();
 
-    [events, eventMeta] = await Promise.all([
-      eventQuery.modelQuery,
-      eventQuery.countTotal(),
-    ]);
-
-    if (!events.length)
-      throw new ApiError(status.NOT_FOUND, "Events not found");
+    delete searchFilters["status"];
   }
 
   if (track) {
-    const trackQuery = new QueryBuilder(
-      Track.find(searchFilters).populate("host").lean(),
-      newQuery
-    )
-      .search(["trackName", "address", "description"])
-      .filter()
-      .sort()
-      .paginate()
-      .fields();
+    if (category) searchFilters.category = category;
+    tracks = await Track.find(searchFilters)
+      .populate("host")
+      .collation({ locale: "en", strength: 2 })
+      .lean();
 
-    [tracks, trackMeta] = await Promise.all([
-      trackQuery.modelQuery,
-      trackQuery.countTotal(),
-    ]);
-
-    if (!tracks.length)
-      throw new ApiError(status.NOT_FOUND, "Tracks not found");
+    delete searchFilters["category"];
   }
 
   return {
-    eventMeta,
-    trackMeta,
     tracks,
     events,
   };
