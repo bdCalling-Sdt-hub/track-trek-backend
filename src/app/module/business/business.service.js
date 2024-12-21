@@ -474,7 +474,7 @@ const getSingleBusiness = async (query) => {
 
   if (trackId) {
     if (slots) {
-      const track = await Track.findOne({ _id: trackId })
+      const track = await Track.findById(trackId)
         .populate({
           path: "slots",
           select: "-createdAt -updatedAt -__v",
@@ -483,7 +483,7 @@ const getSingleBusiness = async (query) => {
 
       return track;
     } else {
-      const track = await Track.findOne({ _id: trackId }).lean();
+      const track = await Track.findById(trackId).lean();
 
       if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
 
