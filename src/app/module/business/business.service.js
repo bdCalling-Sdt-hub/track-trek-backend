@@ -87,11 +87,11 @@ const joinEvent = async (user, payload) => {
       `${event ? "Slot" : "Event"} not found`
     );
 
-  // if (event.status !== ENUM_EVENT_STATUS.OPEN)
-  //   throw new ApiError(
-  //     status.BAD_REQUEST,
-  //     `Event is no longer open (status: ${event.status}).`
-  //   );
+  if (event.status !== ENUM_EVENT_STATUS.OPEN)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `Event is no longer open (status: ${event.status}).`
+    );
 
   // check seat availability
   const totalPeople = slot.currentPeople + data.length;
