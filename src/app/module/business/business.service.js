@@ -447,7 +447,10 @@ const getSingleBusiness = async (query) => {
       return { count: bookings.length, bookings };
     } else {
       const [event, bookings, slots] = await Promise.all([
-        Event.findOne({ _id: eventId }).populate({ path: "slots" }).lean(),
+        Event.findOne({ _id: eventId })
+          .populate({ path: "slots" })
+          .select("-bookings")
+          .lean(),
         Booking.find({ event: eventId })
           .select("eventSlot numOfPeople -_id")
           .lean(),
