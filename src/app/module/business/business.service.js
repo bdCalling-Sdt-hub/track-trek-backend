@@ -457,12 +457,8 @@ const getSingleBusiness = async (query) => {
 
       if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
 
-      const bookedSeats = bookings.reduce((acc, booking) => {
-        return acc + booking.numOfPeople;
-      }, 0);
-      const totalSeat = slots.reduce((acc, slot) => {
-        return acc + slot.maxPeople;
-      }, 0);
+      const bookedSeats = totalCalculator(bookings, "numOfPeople");
+      const totalSeat = totalCalculator(slots, "maxPeople");
 
       return {
         totalSeat,
@@ -581,6 +577,12 @@ const deleteBusiness = async (query) => {
 
   if (eventId) return await Event.deleteOne({ _id: eventId });
   else throw new ApiError(status.BAD_REQUEST, "Missing id");
+};
+
+const totalCalculator = (arrayOfObj, objKey) => {
+  return arrayOfObj.reduce((acc, elem) => {
+    return acc + elem[objKey];
+  }, 0);
 };
 
 const updateEventStatus = async () => {
