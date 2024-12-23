@@ -596,6 +596,26 @@ const deleteBusiness = async (query) => {
   else throw new ApiError(status.BAD_REQUEST, "Missing id");
 };
 
+const getBookings = async (user, query) => {
+  const { userId } = user;
+  const { data, history } = query;
+  const now = new Date();
+
+  const queryObj = {
+    user: userId,
+    endDateTime: history ? { $lt: now } : { $gte: now },
+  };
+
+  if (data === "event") {
+    queryObj.event = { $exists: true };
+  } else {
+    queryObj.track = { $exists: true };
+  }
+
+  const bookings = await Booking.find(queryObj);
+  return bookings;
+};
+
 // common functions
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
@@ -667,6 +687,7 @@ const BusinessService = {
   getMyBusiness,
   getAllBusiness,
   deleteBusiness,
+  getBookings,
 };
 
 module.exports = { BusinessService };
