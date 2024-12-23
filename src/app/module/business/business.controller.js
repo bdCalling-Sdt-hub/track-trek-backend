@@ -122,6 +122,16 @@ const deleteBusiness = catchAsync(async (req, res) => {
   });
 });
 
+const getBookings = catchAsync(async (req, res) => {
+  const result = await BusinessService.getBookings(req.user, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Bookings retrieved",
+    data: result,
+  });
+});
+
 const BusinessController = {
   createEvent,
   joinEvent,
@@ -135,6 +145,7 @@ const BusinessController = {
   getMyBusiness,
   getAllBusiness,
   deleteBusiness,
+  getBookings,
 };
 
 module.exports = { BusinessController };

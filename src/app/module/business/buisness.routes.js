@@ -60,6 +60,11 @@ router
     "/delete-business",
     auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
     BusinessController.deleteBusiness
+  )
+  .get(
+    "/get-booking",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+    BusinessController.getBookings
   );
 
 module.exports = router;
