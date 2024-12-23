@@ -350,17 +350,8 @@ const searchForSlots = async (query) => {
   dateTimeValidator([date], []);
 
   const dayOfWeek = moment(date).format("dddd"); // 'Monday', 'Tuesday'
-  const startDate = moment(date).startOf("day").toDate();
-  const endDate = moment(date).endOf("day").toDate();
 
-  const bookedSlots = await Booking.find({
-    trackSlot: { $exists: true },
-    startDateTime: {
-      $gte: startDate,
-      $lt: endDate,
-    },
-  });
-
+  const bookedSlots = await getBookedSlotsOnDate(date, { track: trackId });
   const newData = Object.values(
     bookedSlots.reduce((acc, { trackSlot, numOfPeople }) => {
       if (!acc[trackSlot]) {
@@ -372,9 +363,7 @@ const searchForSlots = async (query) => {
   );
 
   const bookedSlotIds = bookedSlots.map((booking) => booking.trackSlot);
-
   const slots = await TrackSlot.find({ _id: { $in: bookedSlotIds } });
-
   const mappedSlotIds = new Map(slots.map((obj) => [obj._id.toString(), obj]));
 
   const unavailableSlotIds = [];
@@ -407,6 +396,17 @@ const bookASlot = async (user, payload) => {
   const slot = await TrackSlot.findById(slotId);
   if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
 
+  const bookedSlots = await getBookedSlotsOnDate(date, { trackSlot: slotId });
+  const currentBookedSeats = totalCalculator(bookedSlots, "numOfPeople");
+  const newBookedSeats = currentBookedSeats + numOfPeople;
+  const totalSeats = slot.maxPeople;
+
+  if (newBookedSeats > totalSeats)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `${totalSeats - currentBookedSeats} seats available`
+    );
+
   const bookingData = {
     user: userId,
     host: slot.host,
@@ -419,7 +419,6 @@ const bookASlot = async (user, payload) => {
   };
 
   const booking = await Booking.create(bookingData);
-
   return booking;
 };
 
@@ -592,6 +591,20 @@ const deleteBusiness = async (query) => {
 
   if (eventId) return await Event.deleteOne({ _id: eventId });
   else throw new ApiError(status.BAD_REQUEST, "Missing id");
+};
+
+// common functions
+const getBookedSlotsOnDate = async (date, dynamicData) => {
+  const startDate = moment(date).startOf("day").toDate();
+  const endDate = moment(date).endOf("day").toDate();
+
+  return await Booking.find({
+    ...dynamicData,
+    startDateTime: {
+      $gte: startDate,
+      $lt: endDate,
+    },
+  });
 };
 
 const totalCalculator = (arrayOfObj, objKey) => {
