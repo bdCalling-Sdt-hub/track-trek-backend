@@ -605,6 +605,13 @@ const getBookings = async (user, query) => {
     user: userId,
     endDateTime: history ? { $lt: now } : { $gte: now },
   };
+  const populateObj = {
+    path: data === "event" ? "event eventSlot" : "trackSlot",
+    select:
+      data === "event"
+        ? "eventName address startDateTime endDateTime maxPeople"
+        : "day slotNo -_id",
+  };
 
   if (data === "event") {
     queryObj.event = { $exists: true };
@@ -612,7 +619,7 @@ const getBookings = async (user, query) => {
     queryObj.track = { $exists: true };
   }
 
-  const bookings = await Booking.find(queryObj);
+  const bookings = await Booking.find(queryObj).populate(populateObj);
   return bookings;
 };
 
