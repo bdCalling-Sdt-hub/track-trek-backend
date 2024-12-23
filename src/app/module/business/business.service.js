@@ -424,7 +424,7 @@ const bookASlot = async (user, payload) => {
 };
 
 const getSingleBusiness = async (query) => {
-  const { trackId, eventId, participants, slots } = query || {};
+  const { trackId, eventId, participants, getSlots, slotId } = query || {};
 
   if (!eventId && !trackId)
     throw new ApiError(status.NOT_FOUND, "Missing eventId or trackId");
@@ -469,7 +469,7 @@ const getSingleBusiness = async (query) => {
   }
 
   if (trackId) {
-    if (slots) {
+    if (getSlots) {
       const track = await Track.findById(trackId)
         .populate({
           path: "slots",
@@ -478,6 +478,21 @@ const getSingleBusiness = async (query) => {
         .lean();
 
       return track;
+    } else if (slotId) {
+      const [trackSlot, bookings] = await Promise.all([
+        TrackSlot.findById(slotId).select("maxPeople"),
+        Booking.find({ trackSlot: slotId }).select("numOfPeople -_id").lean(),
+      ]);
+
+      if (!trackSlot)
+        throw new ApiError(status.NOT_FOUND, "Track slot not found");
+
+      const bookedSeats = totalCalculator(bookings, "numOfPeople");
+
+      return {
+        ...trackSlot.toObject(),
+        unsold: trackSlot.maxPeople - bookedSeats,
+      };
     } else {
       const track = await Track.findById(trackId).lean();
 
