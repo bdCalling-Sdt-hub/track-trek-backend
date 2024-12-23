@@ -87,11 +87,11 @@ const joinEvent = async (user, payload) => {
       `${event ? "Slot" : "Event"} not found`
     );
 
-  // if (event.status !== ENUM_EVENT_STATUS.OPEN)
-  //   throw new ApiError(
-  //     status.BAD_REQUEST,
-  //     `Event is no longer open (status: ${event.status}).`
-  //   );
+  if (event.status !== ENUM_EVENT_STATUS.OPEN)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      `Event is no longer open (status: ${event.status}).`
+    );
 
   // check seat availability
   const totalPeople = slot.currentPeople + data.length;
@@ -447,7 +447,10 @@ const getSingleBusiness = async (query) => {
       return { count: bookings.length, bookings };
     } else {
       const [event, bookings, slots] = await Promise.all([
-        Event.findOne({ _id: eventId }).populate({ path: "slots" }).lean(),
+        Event.findOne({ _id: eventId })
+          .populate({ path: "slots" })
+          .select("-bookings")
+          .lean(),
         Booking.find({ event: eventId })
           .select("eventSlot numOfPeople -_id")
           .lean(),
