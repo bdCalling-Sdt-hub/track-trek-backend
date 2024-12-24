@@ -38,7 +38,6 @@ const createEvent = async (req) => {
     "endTime",
     "moreInfo",
   ]);
-
   dateTimeValidator([startDate, endDate], [startTime, endTime]);
 
   const newStartDateTime = new Date(`${startDate} ${startTime}`);
@@ -67,6 +66,7 @@ const createEvent = async (req) => {
   const event = await Event.create(eventData);
 
   postNotification("New Event", "You have created a new event", userId);
+  postNotification("New Event", "A new event was created");
 
   return event;
 };
@@ -339,7 +339,7 @@ const createSlot = async (user, payload) => {
 
     postNotification(
       "Slot Created",
-      `New slot added to event: ${eventId}`,
+      `New slot added to event: ${event.eventName}`,
       userId
     );
   }
@@ -351,13 +351,23 @@ const deleteSlot = async (user, payload) => {
   validateFields(payload, ["slotId"]);
 
   const { slotId } = payload;
+  let result = [];
 
-  const result = await TrackSlot.findByIdAndDelete(slotId);
-  if (!result) throw new ApiError(status.NOT_FOUND, "No slots found");
+  if (payload.event) {
+    result = await EventSlot.findByIdAndDelete(slotId);
+    if (!result) throw new ApiError(status.NOT_FOUND, "No slots found");
 
-  Promise.all([
-    Track.updateOne({ _id: result.track }, { $pull: { slots: slotId } }),
-  ]);
+    Promise.all([
+      Event.updateOne({ _id: result.event }, { $pull: { slots: slotId } }),
+    ]);
+  } else {
+    result = await TrackSlot.findByIdAndDelete(slotId);
+    if (!result) throw new ApiError(status.NOT_FOUND, "No slots found");
+
+    Promise.all([
+      Track.updateOne({ _id: result.track }, { $pull: { slots: slotId } }),
+    ]);
+  }
 
   postNotification(
     "Slot Deleted",
