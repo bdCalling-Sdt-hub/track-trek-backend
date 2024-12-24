@@ -70,6 +70,11 @@ router
     "/view-all-participants",
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.viewAllParticipants
+  )
+  .patch(
+    "/active-deactivate-track",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.activeDeactivateTrack
   );
 
 module.exports = router;
