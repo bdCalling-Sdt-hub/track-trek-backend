@@ -80,6 +80,11 @@ router
     "/renters-on-date",
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.rentersOnDate
+  )
+  .get(
+    "/get-all-notifications",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+    BusinessController.getAllNotifications
   );
 
 module.exports = router;
