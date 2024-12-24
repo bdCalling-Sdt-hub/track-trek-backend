@@ -44,6 +44,13 @@ const TrackSchema = new Schema(
       enum: ["active", "deactivated"],
       default: "active",
     },
+    isPromoted: {
+      type: Boolean,
+      default: false,
+    },
+    promotionExpire: {
+      type: Date,
+    },
     trackDays: [
       {
         type: String,
