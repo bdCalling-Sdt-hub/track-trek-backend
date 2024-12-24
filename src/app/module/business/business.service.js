@@ -734,7 +734,7 @@ const getAllNotifications = async (user) => {
   return Notification.find({ toId: user.userId });
 };
 
-// common functions
+// utility functions
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
   const endDate = moment(date).endOf("day").toDate();
@@ -813,31 +813,3 @@ const BusinessService = {
 };
 
 module.exports = { BusinessService };
-
-// const uniqueSlotTotalBookings = Object.values(
-//   bookings.reduce((acc, { eventSlot, numOfPeople }) => {
-//     // console.log(eventSlot, numOfPeople);
-//     if (!acc[eventSlot]) {
-//       acc[eventSlot] = { eventSlot, numOfPeople: 0 };
-//     }
-
-//     acc[eventSlot].numOfPeople += numOfPeople;
-//     return acc;
-//   }, {})
-// );
-
-// console.log(uniqueSlotTotalBookings);
-
-// const newEventSlots = [...slots];
-
-// newEventSlots.map((slot) => {
-//   uniqueSlotTotalBookings.find((uniqueSlot) => {
-//     if (uniqueSlot.eventSlot.toString() === slot._id.toString()) {
-//       console.log(slot);
-//     }
-//     // uniqueSlot.eventSlot.toString() === slot._id.toString();
-//     // console.log("found");
-//     // console.log(uniqueSlot.eventSlot.toString() === slot._id.toString());
-//   });
-//   // console.log(slot._id);
-// });
