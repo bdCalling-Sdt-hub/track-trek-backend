@@ -7,7 +7,11 @@ const Track = require("../track/track.model");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
 const { isValidDate } = require("../../../util/isValidDate");
 const { logger } = require("../../../shared/logger");
-const { ENUM_EVENT_STATUS, ENUM_SLOT_STATUS } = require("../../../util/enum");
+const {
+  ENUM_EVENT_STATUS,
+  ENUM_SLOT_STATUS,
+  ENUM_TRACK_STATUS,
+} = require("../../../util/enum");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
@@ -419,6 +423,13 @@ const bookASlot = async (user, payload) => {
   };
 
   const booking = await Booking.create(bookingData);
+
+  Promise.all([
+    Track.updateOne({ _id: slot.track }, { $push: { renters: userId } }),
+  ]);
+
+  postNotification("New Booking", "You have booked a slot of a track", userId);
+
   return booking;
 };
 
@@ -578,6 +589,8 @@ const getAllBusiness = async (query) => {
 
   if (track) {
     if (category) searchFilters.category = category;
+    searchFilters.status = ENUM_TRACK_STATUS.ACTIVE;
+
     tracks = await Track.find(searchFilters)
       .populate("host")
       .collation({ locale: "en", strength: 2 })

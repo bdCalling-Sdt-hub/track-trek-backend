@@ -39,6 +39,11 @@ const TrackSchema = new Schema(
       type: String,
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["active", "deactivated"],
+      default: "active",
+    },
     trackDays: [
       {
         type: String,

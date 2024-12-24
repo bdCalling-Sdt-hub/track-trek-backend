@@ -16,8 +16,14 @@ const ENUM_EVENT_STATUS = {
   ENDED: "ended",
 };
 
+const ENUM_TRACK_STATUS = {
+  ACTIVE: "active",
+  DEACTIVATED: "deactivated",
+};
+
 module.exports = {
   ENUM_USER_ROLE,
   ENUM_EVENT_STATUS,
+  ENUM_TRACK_STATUS,
   ENUM_SLOT_STATUS,
 };
