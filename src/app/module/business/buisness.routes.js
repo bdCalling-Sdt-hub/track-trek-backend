@@ -75,6 +75,11 @@ router
     "/active-deactivate-track",
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.activeDeactivateTrack
+  )
+  .get(
+    "/renters-on-date",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.rentersOnDate
   );
 
 module.exports = router;

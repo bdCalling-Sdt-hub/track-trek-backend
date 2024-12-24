@@ -155,6 +155,16 @@ const activeDeactivateTrack = catchAsync(async (req, res) => {
   });
 });
 
+const rentersOnDate = catchAsync(async (req, res) => {
+  const result = await BusinessService.rentersOnDate(req.user, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Renters retrieved",
+    data: result,
+  });
+});
+
 const BusinessController = {
   createEvent,
   joinEvent,
@@ -171,6 +181,7 @@ const BusinessController = {
   getBookings,
   viewAllParticipants,
   activeDeactivateTrack,
+  rentersOnDate,
 };
 
 module.exports = { BusinessController };

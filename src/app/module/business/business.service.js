@@ -663,13 +663,33 @@ const activeDeactivateTrack = async (user, payload) => {
       status: trackStatus,
     },
     { new: true, runValidators: true }
-  );
+  ).select("status");
 
   if (!result) throw new ApiError(status.NOT_FOUND, "Track not found");
 
   postNotification("Track Updated", `Your track is ${trackStatus}`, userId);
 
   return result;
+};
+
+const rentersOnDate = async (user, query) => {
+  const { date } = query;
+
+  validateFields(query, ["date"]);
+  dateTimeValidator([date], []);
+
+  const startOfDay = new Date(date);
+  const endOfDay = new Date(date);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  const renters = await Booking.find({
+    startDateTime: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+  });
+
+  return { count: renters.length, renters };
 };
 
 // common functions
@@ -746,6 +766,7 @@ const BusinessService = {
   getBookings,
   viewAllParticipants,
   activeDeactivateTrack,
+  rentersOnDate,
 };
 
 module.exports = { BusinessService };
