@@ -42,7 +42,7 @@ const TrackSchema = new Schema(
     status: {
       type: String,
       enum: ["active", "deactivated"],
-      default: "active",
+      default: "deactivated",
     },
     isPromoted: {
       type: Boolean,
