@@ -65,6 +65,11 @@ router
     "/get-booking",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
     BusinessController.getBookings
+  )
+  .get(
+    "/view-all-participants",
+    auth(ENUM_USER_ROLE.HOST),
+    BusinessController.viewAllParticipants
   );
 
 module.exports = router;

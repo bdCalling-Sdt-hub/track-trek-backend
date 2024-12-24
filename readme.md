@@ -23,3 +23,7 @@ manage section
 
 1. track deactivate-activate instead of delete-active remove
 2. manage page title change dynamic
+
+## issues
+
+1. when showing participants of a track slot. do not show expired ones

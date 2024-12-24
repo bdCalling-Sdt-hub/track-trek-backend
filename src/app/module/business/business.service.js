@@ -506,27 +506,30 @@ const getSingleBusiness = async (query) => {
 };
 
 const getMyBusiness = async (user, query) => {
-  const eventQuery = new QueryBuilder(
-    Event.find({ host: user.userId }).lean(),
-    query
-  )
-    .search(["eventName", "address", "description"])
-    .filter()
-    .sort()
-    .paginate()
-    .fields();
+  const { userId } = user;
+  const { data, booked } = query;
+  let events = [];
+  let tracks = [];
 
-  const [events, meta] = await Promise.all([
-    eventQuery.modelQuery,
-    eventQuery.countTotal(),
-  ]);
+  if (data === "event") {
+    events = await Event.find({
+      host: userId,
+      status: booked
+        ? { $eq: ENUM_EVENT_STATUS.FULL }
+        : { $ne: ENUM_EVENT_STATUS.ENDED },
+    });
+    return {
+      count: events.length,
+      events,
+    };
+  } else {
+    tracks = await Track.find({ host: userId });
 
-  if (!events.length) throw new ApiError(status.NOT_FOUND, "Events not found");
-
-  return {
-    meta,
-    events,
-  };
+    return {
+      count: tracks.length,
+      tracks,
+    };
+  }
 };
 
 const getAllBusiness = async (query) => {
@@ -623,6 +626,18 @@ const getBookings = async (user, query) => {
   return bookings;
 };
 
+const viewAllParticipants = async (user, query) => {
+  const { slotId, trackId, eventId } = query;
+
+  if (slotId) {
+    const participantsOfSlot = await Booking.find({ eventSlot: slotId });
+    return participantsOfSlot;
+  } else {
+    const eventSlots = await EventSlot.find({ event: eventId });
+    return eventSlots;
+  }
+};
+
 // common functions
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
@@ -695,6 +710,7 @@ const BusinessService = {
   getAllBusiness,
   deleteBusiness,
   getBookings,
+  viewAllParticipants,
 };
 
 module.exports = { BusinessService };

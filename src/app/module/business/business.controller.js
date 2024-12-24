@@ -132,6 +132,16 @@ const getBookings = catchAsync(async (req, res) => {
   });
 });
 
+const viewAllParticipants = catchAsync(async (req, res) => {
+  const result = await BusinessService.viewAllParticipants(req.user, req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Participants retrieved",
+    data: result,
+  });
+});
+
 const BusinessController = {
   createEvent,
   joinEvent,
@@ -146,6 +156,7 @@ const BusinessController = {
   getAllBusiness,
   deleteBusiness,
   getBookings,
+  viewAllParticipants,
 };
 
 module.exports = { BusinessController };
