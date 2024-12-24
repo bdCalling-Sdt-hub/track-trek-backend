@@ -18,6 +18,7 @@ const { default: mongoose } = require("mongoose");
 const moment = require("moment");
 const EventSlot = require("../slot/eventSlot.model");
 const TrackSlot = require("../slot/trackSlot.model");
+const Notification = require("../notification/notification.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -699,6 +700,10 @@ const rentersOnDate = async (user, query) => {
   return { count: renters.length, renters };
 };
 
+const getAllNotifications = async (user) => {
+  return Notification.find({ toId: user.userId });
+};
+
 // common functions
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
@@ -774,6 +779,7 @@ const BusinessService = {
   viewAllParticipants,
   activeDeactivateTrack,
   rentersOnDate,
+  getAllNotifications,
 };
 
 module.exports = { BusinessService };

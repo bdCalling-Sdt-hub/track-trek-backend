@@ -165,6 +165,16 @@ const rentersOnDate = catchAsync(async (req, res) => {
   });
 });
 
+const getAllNotifications = catchAsync(async (req, res) => {
+  const result = await BusinessService.getAllNotifications(req.user);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Notifications retrieved",
+    data: result,
+  });
+});
+
 const BusinessController = {
   createEvent,
   joinEvent,
@@ -182,6 +192,7 @@ const BusinessController = {
   viewAllParticipants,
   activeDeactivateTrack,
   rentersOnDate,
+  getAllNotifications,
 };
 
 module.exports = { BusinessController };
