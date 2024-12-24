@@ -160,7 +160,7 @@ const rentersOnDate = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Renters retrieved",
+    message: req.query.history ? "History retrieved" : "Renters retrieved",
     data: result,
   });
 });

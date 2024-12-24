@@ -673,7 +673,14 @@ const activeDeactivateTrack = async (user, payload) => {
 };
 
 const rentersOnDate = async (user, query) => {
-  const { date } = query;
+  const { date, history } = query;
+
+  if (history) {
+    const bookings = await Booking.find({
+      endDateTime: { $lt: new Date() },
+    }).populate("eventSlot trackSlot");
+    return bookings;
+  }
 
   validateFields(query, ["date"]);
   dateTimeValidator([date], []);
