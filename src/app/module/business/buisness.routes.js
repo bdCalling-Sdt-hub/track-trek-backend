@@ -23,7 +23,7 @@ router
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.createSlot
   )
-  .post(
+  .delete(
     "/delete-slot",
     auth(ENUM_USER_ROLE.HOST),
     BusinessController.deleteSlot

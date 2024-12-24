@@ -12,7 +12,6 @@ const {
   ENUM_SLOT_STATUS,
   ENUM_TRACK_STATUS,
 } = require("../../../util/enum");
-const QueryBuilder = require("../../../builder/queryBuilder");
 const Booking = require("../booking/booking.model");
 const { default: mongoose } = require("mongoose");
 const moment = require("moment");
@@ -39,7 +38,6 @@ const createEvent = async (req) => {
     "endTime",
     "moreInfo",
   ]);
-
   dateTimeValidator([startDate, endDate], [startTime, endTime]);
 
   const newStartDateTime = new Date(`${startDate} ${startTime}`);
@@ -68,6 +66,7 @@ const createEvent = async (req) => {
   const event = await Event.create(eventData);
 
   postNotification("New Event", "You have created a new event", userId);
+  postNotification("New Event", "A new event was created");
 
   return event;
 };
@@ -200,14 +199,22 @@ const createTrack = async (req) => {
 
   const track = await Track.create(trackData);
 
-  postNotification("New Track", "You have created a new track", userId);
+  postNotification(
+    "New Track",
+    "You have created a new track. Please finish the process to activate.",
+    userId
+  );
+  postNotification(
+    "New Track",
+    `An User has created a new track ${payload.trackName}`
+  );
 
   return track;
 };
 
 const updateTrack = async (user, payload) => {
   const { userId } = user;
-  const { trackId, trackDays, totalSlots, renters, slots } = payload || {};
+  const { trackId, trackDays } = payload || {};
 
   const data = {
     trackDays,
@@ -233,11 +240,22 @@ const updateTrack = async (user, payload) => {
     }
 
     data.totalTrackDayInMonth = count;
-
-    postNotification("Track Updated", `Track ${trackId} updated`, userId);
   }
 
   const updatedTrack = await Track.updateOne({ _id: trackId }, data).lean();
+
+  if (!updatedTrack.modifiedCount)
+    throw new ApiError(status.NOT_FOUND, "Track not found");
+
+  postNotification(
+    "Track Activated",
+    `Track ${trackId} updated. Users can now view your track`,
+    userId
+  );
+  postNotification(
+    "Track Activated",
+    `Track ${trackId} updated. Users can now book the track`
+  );
 
   return updatedTrack;
 };
@@ -245,13 +263,14 @@ const updateTrack = async (user, payload) => {
 const createSlot = async (user, payload) => {
   const { userId } = user;
   const { trackId, eventId, day, startTime, endTime } = payload || {};
-  let slot;
+  let slot = [];
 
-  if (!trackId && !eventId)
+  if (!trackId && !eventId) {
     throw new ApiError(
       status.BAD_REQUEST,
       "trackId or eventId is required to create slot1"
     );
+  }
 
   if (trackId) {
     validateFields(payload, [
@@ -283,13 +302,12 @@ const createSlot = async (user, payload) => {
 
     Promise.all([
       Track.updateOne({ _id: trackId }, { $push: { slots: slot._id } }),
+      postNotification(
+        "Slot Created",
+        `New slot added to track: ${trackId}`,
+        userId
+      ),
     ]);
-
-    postNotification(
-      "Slot Created",
-      `New slot added to track: ${trackId}`,
-      userId
-    );
   }
 
   if (eventId) {
@@ -321,7 +339,7 @@ const createSlot = async (user, payload) => {
 
     postNotification(
       "Slot Created",
-      `New slot added to event: ${eventId}`,
+      `New slot added to event: ${event.eventName}`,
       userId
     );
   }
@@ -333,15 +351,27 @@ const deleteSlot = async (user, payload) => {
   validateFields(payload, ["slotId"]);
 
   const { slotId } = payload;
+  let result = [];
 
-  const result = await TrackSlot.deleteOne({ _id: slotId });
+  if (payload.event) {
+    result = await EventSlot.findByIdAndDelete(slotId);
+    if (!result) throw new ApiError(status.NOT_FOUND, "No slots found");
 
-  if (!result.deletedCount)
-    throw new ApiError(status.NOT_FOUND, "No slots found");
+    Promise.all([
+      Event.updateOne({ _id: result.event }, { $pull: { slots: slotId } }),
+    ]);
+  } else {
+    result = await TrackSlot.findByIdAndDelete(slotId);
+    if (!result) throw new ApiError(status.NOT_FOUND, "No slots found");
+
+    Promise.all([
+      Track.updateOne({ _id: result.track }, { $pull: { slots: slotId } }),
+    ]);
+  }
 
   postNotification(
     "Slot Deleted",
-    `Slot: ${slotId} has been deleted`,
+    `Slot: ${result.slotNo} has been deleted and removed from the track`,
     user.userId
   );
 
