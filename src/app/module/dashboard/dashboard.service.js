@@ -7,6 +7,7 @@ const postNotification = require("../../../util/postNotification");
 const Auth = require("../auth/auth.model");
 const Payment = require("../payment/payment.model");
 const Category = require("../category/category.model");
+const { ENUM_USER_ROLE } = require("../../../util/enum");
 
 // destination ========================
 const addCategory = async (req) => {
@@ -367,25 +368,14 @@ const getAllUser = async (query) => {
     usersQuery.countTotal(),
   ]);
 
-  if (!result) throw new ApiError(httpStatus.NOT_FOUND, `No ${role} found`);
-
   return { meta, result };
 };
 
 const getSingleUser = async (query) => {
-  const { userId, role } = query;
+  const { userId } = query;
 
-  validateFields(query, ["userId", "role"]);
+  validateFields(query, ["userId"]);
 
-  if (role === ENUM_USER_ROLE.HOST) {
-    const [cars, user] = await Promise.all([
-      Car.find({ user: userId }),
-      User.findById(userId),
-    ]);
-
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
-    return { host: user, cars };
-  }
   const user = await User.findById(userId);
 
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
