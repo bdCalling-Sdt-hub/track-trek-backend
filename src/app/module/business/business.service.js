@@ -651,6 +651,27 @@ const viewAllParticipants = async (user, query) => {
   }
 };
 
+const activeDeactivateTrack = async (user, payload) => {
+  const { userId } = user;
+  const { trackId, status: trackStatus } = payload;
+
+  validateFields(payload, ["trackId", "status"]);
+
+  const result = await Track.findByIdAndUpdate(
+    trackId,
+    {
+      status: trackStatus,
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!result) throw new ApiError(status.NOT_FOUND, "Track not found");
+
+  postNotification("Track Updated", `Your track is ${trackStatus}`, userId);
+
+  return result;
+};
+
 // common functions
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
@@ -724,6 +745,7 @@ const BusinessService = {
   deleteBusiness,
   getBookings,
   viewAllParticipants,
+  activeDeactivateTrack,
 };
 
 module.exports = { BusinessService };

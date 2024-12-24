@@ -142,6 +142,19 @@ const viewAllParticipants = catchAsync(async (req, res) => {
   });
 });
 
+const activeDeactivateTrack = catchAsync(async (req, res) => {
+  const result = await BusinessService.activeDeactivateTrack(
+    req.user,
+    req.body
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Track updated",
+    data: result,
+  });
+});
+
 const BusinessController = {
   createEvent,
   joinEvent,
@@ -157,6 +170,7 @@ const BusinessController = {
   deleteBusiness,
   getBookings,
   viewAllParticipants,
+  activeDeactivateTrack,
 };
 
 module.exports = { BusinessController };
