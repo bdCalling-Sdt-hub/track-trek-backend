@@ -7,16 +7,20 @@ const { UserController } = require("./user.controller");
 const router = express.Router();
 
 router
-  .get("/profile", auth(ENUM_USER_ROLE.USER), UserController.getProfile)
+  .get(
+    "/profile",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+    UserController.getProfile
+  )
   .patch(
     "/edit-profile",
-    auth(ENUM_USER_ROLE.USER),
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
     uploadFile(),
     UserController.updateProfile
   )
   .delete(
     "/delete-account",
-    auth(ENUM_USER_ROLE.USER),
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
     UserController.deleteMyAccount
   );
 

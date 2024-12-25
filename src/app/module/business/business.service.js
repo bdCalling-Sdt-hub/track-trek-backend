@@ -441,10 +441,13 @@ const bookASlot = async (user, payload) => {
   validateFields(payload, ["slotId", "numOfPeople", "date"]);
   dateTimeValidator([date], []);
 
-  const slot = await TrackSlot.findById(slotId);
+  const [slot, bookedSlots] = await Promise.all([
+    TrackSlot.findById(slotId),
+    getBookedSlotsOnDate(date, { trackSlot: slotId }),
+  ]);
+
   if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
 
-  const bookedSlots = await getBookedSlotsOnDate(date, { trackSlot: slotId });
   const currentBookedSeats = totalCalculator(bookedSlots, "numOfPeople");
   const newBookedSeats = currentBookedSeats + numOfPeople;
   const totalSeats = slot.maxPeople;
@@ -469,10 +472,18 @@ const bookASlot = async (user, payload) => {
   const booking = await Booking.create(bookingData);
 
   Promise.all([
-    Track.updateOne({ _id: slot.track }, { $push: { renters: userId } }),
+    Track.updateOne({ _id: slot.track }, { $addToSet: { renters: userId } }),
+    postNotification(
+      "New Booking",
+      "You have booked a slot of a track",
+      userId
+    ),
+    postNotification(
+      "New Booking",
+      `Booking for slot: ${slot.slotNo}`,
+      slot.host
+    ),
   ]);
-
-  postNotification("New Booking", "You have booked a slot of a track", userId);
 
   return booking;
 };
@@ -638,7 +649,10 @@ const getAllBusiness = async (query) => {
     searchFilters.status = ENUM_TRACK_STATUS.ACTIVE;
 
     tracks = await Track.find(searchFilters)
-      .populate("host")
+      .populate({
+        path: "host",
+        select: "-_id name profile_image",
+      })
       .collation({ locale: "en", strength: 2 })
       .lean();
 

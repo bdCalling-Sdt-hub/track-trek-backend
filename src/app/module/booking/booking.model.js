@@ -59,6 +59,11 @@ const BookingSchema = new Schema(
         },
       },
     ],
+    status: {
+      type: String,
+      enum: ["paid", "unpaid"],
+      default: "unpaid",
+    },
   },
   {
     timestamps: true,
