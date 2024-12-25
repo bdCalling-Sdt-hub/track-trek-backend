@@ -10,9 +10,9 @@ router
 
   // car ===============================
   .get(
-    "/get-all-add-car-req",
+    "/get-bookings",
     auth(ENUM_USER_ROLE.ADMIN),
-    DashboardController.getAllAddCarReq
+    DashboardController.getBookings
   )
   .patch(
     "/approve-car",

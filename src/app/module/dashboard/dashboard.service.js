@@ -7,6 +7,8 @@ const postNotification = require("../../../util/postNotification");
 const Auth = require("../auth/auth.model");
 const Payment = require("../payment/payment.model");
 const Category = require("../category/category.model");
+const { ENUM_USER_ROLE } = require("../../../util/enum");
+const Booking = require("../booking/booking.model");
 
 // destination ========================
 const addCategory = async (req) => {
@@ -276,72 +278,38 @@ const growth = async (query) => {
   };
 };
 
-// car ========================
-const getAllAddCarReq = async (query) => {
-  const addCarReqQuery = new QueryBuilder(
-    Car.find({ status: { $eq: ENUM_CAR_STATUS.PENDING } }).lean(),
-    query
+// booking ========================
+const getBookings = async (query) => {
+  const { data, ...newQuery } = query;
+  const queryObj = {};
+
+  if (data === "event") {
+    queryObj.event = { $exists: true };
+  } else {
+    queryObj.track = { $exists: true };
+  }
+
+  const bookingQuery = new QueryBuilder(
+    Booking.find(queryObj)
+      .populate({ path: "user host eventSlot trackSlot" })
+      .lean(),
+    newQuery
   )
-    .search(["make model year licensePlateNum"])
+    .search(["price bookingFor"])
     .filter()
     .sort()
     .paginate()
     .fields();
 
-  const [allAddCarReq, meta] = await Promise.all([
-    addCarReqQuery.modelQuery,
-    addCarReqQuery.countTotal(),
+  const [bookings, meta] = await Promise.all([
+    bookingQuery.modelQuery,
+    bookingQuery.countTotal(),
   ]);
-
-  if (!allAddCarReq.length)
-    throw new ApiError(status.NOT_FOUND, "Add car requests not found");
 
   return {
     meta,
-    allAddCarReq,
+    bookings,
   };
-};
-
-const approveCar = async (query) => {
-  const { carId, status: carStatus } = query;
-
-  validateFields(query, ["carId", "status"]);
-
-  const car = await Car.findById(carId);
-  const user = await User.findById(car.user);
-
-  if (
-    user.role === ENUM_USER_ROLE.USER &&
-    carStatus === ENUM_CAR_STATUS.APPROVED
-  ) {
-    await Promise.all([
-      User.findByIdAndUpdate(user._id, { role: ENUM_USER_ROLE.HOST }),
-      Auth.updateOne({ _id: user.authId }, { role: ENUM_USER_ROLE.HOST }),
-    ]);
-
-    postNotification("Role Updated", `You are a host now.`, user._id);
-  }
-
-  if (carStatus === ENUM_CAR_STATUS.APPROVED) {
-    await User.updateOne(
-      {
-        _id: car.user,
-      },
-      { $inc: { carCount: 1 }, $push: { cars: carId } }
-    );
-  }
-
-  const updatedCar = await updateCarAndNotify(
-    carId,
-    { status: carStatus },
-    car.user,
-    carStatus === ENUM_CAR_STATUS.APPROVED
-      ? "Your car listing is approved."
-      : "Your car listing was declined. Please check and resubmit.",
-    `Car ${carStatus}`
-  );
-
-  return updatedCar;
 };
 
 // user-host management ========================
@@ -367,25 +335,14 @@ const getAllUser = async (query) => {
     usersQuery.countTotal(),
   ]);
 
-  if (!result) throw new ApiError(httpStatus.NOT_FOUND, `No ${role} found`);
-
   return { meta, result };
 };
 
 const getSingleUser = async (query) => {
-  const { userId, role } = query;
+  const { userId } = query;
 
-  validateFields(query, ["userId", "role"]);
+  validateFields(query, ["userId"]);
 
-  if (role === ENUM_USER_ROLE.HOST) {
-    const [cars, user] = await Promise.all([
-      Car.find({ user: userId }),
-      User.findById(userId),
-    ]);
-
-    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
-    return { host: user, cars };
-  }
   const user = await User.findById(userId);
 
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
@@ -419,8 +376,8 @@ const DashboardService = {
   revenue,
   growth,
   totalOverview,
-  getAllAddCarReq,
-  approveCar,
+
+  getBookings,
   getAllUser,
   getSingleUser,
   blockUnblockUser,

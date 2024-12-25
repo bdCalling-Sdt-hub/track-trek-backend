@@ -65,8 +65,8 @@ const growth = catchAsync(async (req, res) => {
 });
 
 // car ========================
-const getAllAddCarReq = catchAsync(async (req, res) => {
-  const result = await DashboardService.getAllAddCarReq(req.query);
+const getBookings = catchAsync(async (req, res) => {
+  const result = await DashboardService.getBookings(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -124,7 +124,7 @@ const DashboardController = {
   totalOverview,
   revenue,
   growth,
-  getAllAddCarReq,
+  getBookings,
   approveCar,
   getAllUser,
   getSingleUser,
