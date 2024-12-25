@@ -1,9 +1,15 @@
+const { default: mongoose } = require("mongoose");
+const moment = require("moment");
 const { default: status } = require("http-status");
 const ApiError = require("../../../error/ApiError");
-const validateFields = require("../../../util/validateFields");
 const Event = require("../event/event.model");
-const postNotification = require("../../../util/postNotification");
 const Track = require("../track/track.model");
+const EventSlot = require("../slot/eventSlot.model");
+const TrackSlot = require("../slot/trackSlot.model");
+const Notification = require("../notification/notification.model");
+const Booking = require("../booking/booking.model");
+const validateFields = require("../../../util/validateFields");
+const postNotification = require("../../../util/postNotification");
 const dateTimeValidator = require("../../../util/dateTimeValidator");
 const { isValidDate } = require("../../../util/isValidDate");
 const { logger } = require("../../../shared/logger");
@@ -12,12 +18,6 @@ const {
   ENUM_SLOT_STATUS,
   ENUM_TRACK_STATUS,
 } = require("../../../util/enum");
-const Booking = require("../booking/booking.model");
-const { default: mongoose } = require("mongoose");
-const moment = require("moment");
-const EventSlot = require("../slot/eventSlot.model");
-const TrackSlot = require("../slot/trackSlot.model");
-const Notification = require("../notification/notification.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -695,7 +695,7 @@ const getBookings = async (user, query) => {
     queryObj.track = { $exists: true };
   }
 
-  const bookings = await Booking.find(queryObj).populate(populateObj);
+  const bookings = await Booking.find(queryObj).populate(populateObj).lean();
   return bookings;
 };
 
