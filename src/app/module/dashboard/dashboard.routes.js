@@ -8,19 +8,14 @@ const router = express.Router();
 
 router
 
-  // car ===============================
+  // booking ===============================
   .get(
     "/get-bookings",
     auth(ENUM_USER_ROLE.ADMIN),
     DashboardController.getBookings
   )
-  .patch(
-    "/approve-car",
-    auth(ENUM_USER_ROLE.ADMIN),
-    DashboardController.approveCar
-  )
 
-  // destination ========================
+  // category ========================
   .post(
     "/add-category",
     auth(ENUM_USER_ROLE.ADMIN),
@@ -45,6 +40,11 @@ router
     DashboardController.totalOverview
   )
   .get("/revenue", auth(ENUM_USER_ROLE.ADMIN), DashboardController.revenue)
+  .get(
+    "/business-growth",
+    auth(ENUM_USER_ROLE.ADMIN),
+    DashboardController.businessGrowth
+  )
   .get("/growth", auth(ENUM_USER_ROLE.ADMIN), DashboardController.growth)
 
   // user-host management ========================

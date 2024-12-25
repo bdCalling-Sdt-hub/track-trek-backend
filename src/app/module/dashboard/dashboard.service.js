@@ -3,12 +3,13 @@ const ApiError = require("../../../error/ApiError");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const validateFields = require("../../../util/validateFields");
 const User = require("../user/user.model");
-const postNotification = require("../../../util/postNotification");
 const Auth = require("../auth/auth.model");
 const Payment = require("../payment/payment.model");
 const Category = require("../category/category.model");
 const { ENUM_USER_ROLE } = require("../../../util/enum");
 const Booking = require("../booking/booking.model");
+const Track = require("../track/track.model");
+const Event = require("../event/event.model");
 
 // destination ========================
 const addCategory = async (req) => {
@@ -160,41 +161,125 @@ const revenue = async (query) => {
 };
 
 const totalOverview = async () => {
-  const [totalAuth, totalUser, totalHost, totalCar, totalEarningAgg] =
-    await Promise.all([
-      Auth.countDocuments(),
-      User.countDocuments({ role: ENUM_USER_ROLE.USER }),
-      User.countDocuments({ role: ENUM_USER_ROLE.HOST }),
-      Car.countDocuments(),
-      Payment.aggregate([
-        {
-          $match: {
-            status: ENUM_PAYMENT_STATUS.SUCCEEDED,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            totalEarning: {
-              $sum: {
-                $subtract: ["$amount", "$refund_amount"],
-              },
-            },
-          },
-        },
-      ]),
-    ]);
+  const [
+    totalAuth,
+    totalUser,
+    totalHost,
+    totalEvent,
+    totalTrack,
+    totalEarningAgg,
+  ] = await Promise.all([
+    Auth.countDocuments(),
+    Auth.countDocuments({ role: ENUM_USER_ROLE.USER }),
+    Auth.countDocuments({ role: ENUM_USER_ROLE.HOST }),
+    Event.countDocuments(),
+    Track.countDocuments(),
+    // Payment.aggregate([
+    //   {
+    //     $match: {
+    //       status: ENUM_PAYMENT_STATUS.SUCCEEDED,
+    //     },
+    //   },
+    //   {
+    //     $group: {
+    //       _id: null,
+    //       totalEarning: {
+    //         $sum: {
+    //           $subtract: ["$amount", "$refund_amount"],
+    //         },
+    //       },
+    //     },
+    //   },
+    // ]),
+  ]);
 
-  const totalEarning = totalEarningAgg[0].totalEarning
-    ? totalEarningAgg[0].totalEarning
-    : 0;
+  // const totalEarning = totalEarningAgg[0].totalEarning
+  //   ? totalEarningAgg[0].totalEarning
+  //   : 0;
 
   return {
     totalAuth,
     totalUser,
     totalHost,
-    totalCar,
-    totalEarning,
+    totalEvent,
+    totalTrack,
+    // totalEarning,
+  };
+};
+
+const businessGrowth = async (query) => {
+  const { year: yearStr, data } = query;
+
+  validateFields(query, ["year"]);
+
+  const Model = data === "event" ? Event : Track;
+
+  const year = Number(yearStr);
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year + 1, 0, 1);
+
+  const months = Array.from({ length: 12 }, (_, i) =>
+    new Date(0, i).toLocaleString("en", { month: "long" })
+  );
+
+  // Aggregate monthly business counts and list of all years
+  const [monthlyNewEntities, distinctYears] = await Promise.all([
+    Model.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: startOfYear,
+            $lt: endOfYear,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          month: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]),
+    Model.aggregate([
+      {
+        $group: {
+          _id: { $year: "$createdAt" },
+        },
+      },
+      {
+        $project: {
+          year: "$_id",
+          _id: 0,
+        },
+      },
+      {
+        $sort: {
+          year: 1,
+        },
+      },
+    ]),
+  ]);
+
+  const total_years = distinctYears.map((item) => item.year);
+
+  // Initialize result object with all months set to 0
+  const result = months.reduce((acc, month) => ({ ...acc, [month]: 0 }), {});
+
+  // Populate result with actual registration counts
+  monthlyNewEntities.forEach(({ month, count }) => {
+    result[months[month - 1]] = count;
+  });
+
+  return {
+    total_years,
+    monthlyNewEntities: result,
   };
 };
 
@@ -372,11 +457,10 @@ const DashboardService = {
   addCategory,
   getAllCategory,
   deleteCategory,
-
   revenue,
+  businessGrowth,
   growth,
   totalOverview,
-
   getBookings,
   getAllUser,
   getSingleUser,
