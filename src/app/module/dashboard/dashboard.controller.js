@@ -54,6 +54,16 @@ const revenue = catchAsync(async (req, res) => {
   });
 });
 
+const businessGrowth = catchAsync(async (req, res) => {
+  const result = await DashboardService.businessGrowth(req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Business Growth retrieved successfully",
+    data: result,
+  });
+});
+
 const growth = catchAsync(async (req, res) => {
   const result = await DashboardService.growth(req.query);
   sendResponse(res, {
@@ -64,23 +74,13 @@ const growth = catchAsync(async (req, res) => {
   });
 });
 
-// car ========================
+// booking ========================
 const getBookings = catchAsync(async (req, res) => {
   const result = await DashboardService.getBookings(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Add car requests retrieved successfully",
-    data: result,
-  });
-});
-
-const approveCar = catchAsync(async (req, res) => {
-  const result = await DashboardService.approveCar(req.query);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Car status updated successfully",
     data: result,
   });
 });
@@ -123,9 +123,9 @@ const DashboardController = {
   deleteCategory,
   totalOverview,
   revenue,
+  businessGrowth,
   growth,
   getBookings,
-  approveCar,
   getAllUser,
   getSingleUser,
   blockUnblockUser,
