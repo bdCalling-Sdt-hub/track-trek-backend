@@ -80,17 +80,25 @@ const joinEvent = async (user, payload) => {
 
   validateFields(payload, ["eventId", "price", "data"]);
 
-  const [event, slot] = await Promise.all([
+  const [event, slot, peopleCountsAgg] = await Promise.all([
     Event.findById(eventId).lean(),
     EventSlot.findById(slotId).lean(),
+    EventSlot.aggregate([
+      {
+        $match: { event: mongoose.Types.ObjectId.createFromHexString(eventId) },
+      },
+      {
+        $group: {
+          _id: "$event",
+          totalMaxPeople: { $sum: "$maxPeople" },
+          totalCurrentPeople: { $sum: "$currentPeople" },
+        },
+      },
+    ]),
   ]);
 
-  if (!event || !slot)
-    throw new ApiError(
-      status.NOT_FOUND,
-      `${event ? "Slot" : "Event"} not found`
-    );
-
+  if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+  if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
   if (event.status !== ENUM_EVENT_STATUS.OPEN)
     throw new ApiError(
       status.BAD_REQUEST,
@@ -98,12 +106,17 @@ const joinEvent = async (user, payload) => {
     );
 
   // check seat availability
-  const totalPeople = slot.currentPeople + data.length;
-  if (totalPeople > slot.maxPeople)
+  const totalMaxPeople = peopleCountsAgg[0].totalMaxPeople;
+  const totalCurrentPeople =
+    peopleCountsAgg[0].totalCurrentPeople + data.length;
+  const totalPeopleOnSlot = slot.currentPeople + data.length;
+
+  if (totalPeopleOnSlot > slot.maxPeople) {
     throw new ApiError(
       status.BAD_REQUEST,
       `${slot.maxPeople - slot.currentPeople} seats available`
     );
+  }
 
   // preparing the bookings for saving
   const bookingData = data.map((obj) => {
@@ -137,12 +150,11 @@ const joinEvent = async (user, payload) => {
       const slotUpdateOperations = {
         $inc: { currentPeople: bookingData.length },
       };
-      console.log(totalPeople, slot.maxPeople);
 
-      if (totalPeople === slot.maxPeople) {
-        eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+      if (totalPeopleOnSlot === slot.maxPeople)
         slotUpdateOperations.$set = { status: ENUM_SLOT_STATUS.BOOKED };
-      }
+      if (totalMaxPeople === totalCurrentPeople)
+        eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
 
       await Promise.all([
         Event.updateOne(
@@ -240,6 +252,7 @@ const updateTrack = async (user, payload) => {
     }
 
     data.totalTrackDayInMonth = count;
+    data.status = ENUM_TRACK_STATUS.ACTIVE;
   }
 
   const updatedTrack = await Track.updateOne({ _id: trackId }, data).lean();

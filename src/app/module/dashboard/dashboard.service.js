@@ -11,7 +11,7 @@ const Booking = require("../booking/booking.model");
 const Track = require("../track/track.model");
 const Event = require("../event/event.model");
 
-// destination ========================
+// category ========================
 const addCategory = async (req) => {
   const { files, body: data } = req;
   const { name } = data || {};
