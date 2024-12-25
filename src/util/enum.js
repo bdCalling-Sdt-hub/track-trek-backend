@@ -21,9 +21,15 @@ const ENUM_TRACK_STATUS = {
   DEACTIVATED: "deactivated",
 };
 
+const ENUM_PAYMENT_STATUS = {
+  PAID: "paid",
+  UNPAID: "unpaid",
+};
+
 module.exports = {
   ENUM_USER_ROLE,
   ENUM_EVENT_STATUS,
   ENUM_TRACK_STATUS,
   ENUM_SLOT_STATUS,
+  ENUM_PAYMENT_STATUS,
 };
