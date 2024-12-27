@@ -7,9 +7,10 @@ const registrationAccount = catchAsync(async (req, res) => {
   const result = await AuthService.registrationAccount(req.body);
 
   sendResponse(res, {
-    statusCode: 200,
-    success: true,
+    statusCode: result.isActive ? 200 : 400,
+    success: result.isActive ? true : false,
     message: result.message || "Something went wrong",
+    data: result,
   });
 });
 

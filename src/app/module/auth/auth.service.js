@@ -34,10 +34,16 @@ const registrationAccount = async (payload) => {
     );
 
   const existingAuth = await Auth.findOne({ email }).lean();
-  if (existingAuth?.isActive)
-    throw new ApiError(status.BAD_REQUEST, "Email already exists");
-  if (existingAuth && !existingAuth.isActive)
-    return { message: "Already have an account. Please activate" };
+  if (existingAuth) {
+    const message = existingAuth.isActive
+      ? "Account active. Please Login"
+      : "Already have an account. Please activate";
+
+    return {
+      isActive: existingAuth.isActive,
+      message,
+    };
+  }
 
   const { code: activationCode, expiredAt: activationCodeExpire } =
     codeGenerator(3);
@@ -71,7 +77,10 @@ const registrationAccount = async (payload) => {
   if (role === ENUM_USER_ROLE.ADMIN) await Admin.create(userData);
   else await User.create(userData);
 
-  return { message: "Account created successfully. Please check your email" };
+  return {
+    isActive: false,
+    message: "Account created successfully. Please check your email",
+  };
 };
 
 const resendActivationCode = async (payload) => {
@@ -200,6 +209,7 @@ const loginAccount = async (payload) => {
   );
 
   return {
+    role: auth.role,
     accessToken,
     refreshToken,
   };
