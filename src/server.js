@@ -17,21 +17,17 @@ async function main() {
 
     process.on("unhandledRejection", (error) => {
       errorLogger.error("Unhandled Rejection:", error);
-      // process.exit(1);
     });
 
     process.on("uncaughtException", (error) => {
       errorLogger.error("Uncaught Exception:", error);
-      // process.exit(1);
     });
 
     process.on("SIGTERM", () => {
       logger.info("SIGTERM received");
-      // server.close(() => process.exit(0));
     });
   } catch (err) {
     errorLogger.error("Main Function Error:", err);
-    // process.exit(1);
   }
 }
 

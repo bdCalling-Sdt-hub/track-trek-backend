@@ -25,26 +25,6 @@ const registrationAccount = async (payload) => {
     "name",
   ]);
 
-  if (!Object.values(ENUM_USER_ROLE).includes(role))
-    throw new ApiError(status.BAD_REQUEST, "Invalid role");
-  if (password !== confirmPassword)
-    throw new ApiError(
-      status.BAD_REQUEST,
-      "Password and Confirm Password didn't match"
-    );
-
-  const existingAuth = await Auth.findOne({ email }).lean();
-  if (existingAuth) {
-    const message = existingAuth.isActive
-      ? "Account active. Please Login"
-      : "Already have an account. Please activate";
-
-    return {
-      isActive: existingAuth.isActive,
-      message,
-    };
-  }
-
   const { code: activationCode, expiredAt: activationCodeExpire } =
     codeGenerator(3);
   const authData = {
@@ -62,6 +42,34 @@ const registrationAccount = async (payload) => {
       (activationCodeExpire - Date.now()) / (60 * 1000)
     ),
   };
+
+  if (!Object.values(ENUM_USER_ROLE).includes(role))
+    throw new ApiError(status.BAD_REQUEST, "Invalid role");
+  if (password !== confirmPassword)
+    throw new ApiError(
+      status.BAD_REQUEST,
+      "Password and Confirm Password didn't match"
+    );
+
+  const user = await Auth.findOne({ email });
+  if (user) {
+    const message = user.isActive
+      ? "Account active. Please Login"
+      : "Already have an account. Please activate";
+
+    if (!user.isActive) {
+      user.activationCode = activationCode;
+      user.activationCodeExpire = activationCodeExpire;
+      await user.save();
+
+      EmailHelpers.sendOtpResendEmail(email, data);
+    }
+
+    return {
+      isActive: user.isActive,
+      message,
+    };
+  }
 
   if (role !== ENUM_USER_ROLE.ADMIN)
     EmailHelpers.sendActivationEmail(email, data);
