@@ -496,6 +496,7 @@ const getSingleBusiness = async (query) => {
 
   if (eventId) {
     if (participants) {
+      // might be removed
       const event = await Event.findOne({ _id: eventId })
         .select("bookings")
         .lean();
