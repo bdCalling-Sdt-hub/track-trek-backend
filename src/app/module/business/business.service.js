@@ -489,52 +489,33 @@ const bookASlot = async (user, payload) => {
 };
 
 const getSingleBusiness = async (query) => {
-  const { trackId, eventId, participants, getSlots, slotId } = query || {};
+  const { trackId, eventId, getSlots, slotId } = query || {};
 
   if (!eventId && !trackId)
     throw new ApiError(status.NOT_FOUND, "Missing eventId or trackId");
 
   if (eventId) {
-    if (participants) {
-      // might be removed
-      const event = await Event.findOne({ _id: eventId })
-        .select("bookings")
-        .lean();
+    const [event, bookings, slots] = await Promise.all([
+      Event.findOne({ _id: eventId })
+        .populate({ path: "slots" })
+        .select("-bookings")
+        .lean(),
+      Booking.find({ event: eventId })
+        .select("eventSlot numOfPeople -_id")
+        .lean(),
+      EventSlot.find({ event: eventId }).lean(),
+    ]);
 
-      if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
+    if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
 
-      const bookings = await Booking.find({ _id: { $in: event.bookings } })
-        .populate({
-          path: "user",
-          select: "-authId -createdAt -updatedAt -_id -__v",
-        })
-        .select("user numOfPeople moreInfo price -_id")
-        .lean();
+    const bookedSeats = totalCalculator(bookings, "numOfPeople");
+    const totalSeat = totalCalculator(slots, "maxPeople");
 
-      return { count: bookings.length, bookings };
-    } else {
-      const [event, bookings, slots] = await Promise.all([
-        Event.findOne({ _id: eventId })
-          .populate({ path: "slots" })
-          .select("-bookings")
-          .lean(),
-        Booking.find({ event: eventId })
-          .select("eventSlot numOfPeople -_id")
-          .lean(),
-        EventSlot.find({ event: eventId }).lean(),
-      ]);
-
-      if (!event) throw new ApiError(status.NOT_FOUND, "Event not found");
-
-      const bookedSeats = totalCalculator(bookings, "numOfPeople");
-      const totalSeat = totalCalculator(slots, "maxPeople");
-
-      return {
-        totalSeat,
-        unSold: totalSeat - bookedSeats,
-        ...event,
-      };
-    }
+    return {
+      totalSeat,
+      unSold: totalSeat - bookedSeats,
+      ...event,
+    };
   }
 
   if (trackId) {
