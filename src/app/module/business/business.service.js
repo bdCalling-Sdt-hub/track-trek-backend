@@ -559,13 +559,16 @@ const getMyBusiness = async (user, query) => {
   let events = [];
   let tracks = [];
 
+  const statusFilter = booked
+    ? { status: ENUM_EVENT_STATUS.FULL }
+    : { status: { $exists: true } };
+
   if (data === "event") {
     events = await Event.find({
       host: userId,
-      status: booked
-        ? { $eq: ENUM_EVENT_STATUS.FULL }
-        : { $ne: ENUM_EVENT_STATUS.ENDED },
+      ...statusFilter,
     }).populate("slots");
+
     return {
       count: events.length,
       events,
@@ -688,7 +691,10 @@ const viewAllParticipants = async (user, query) => {
   if (trackSlotId) queryObj.trackSlot = trackSlotId;
   if (eventSlotId) queryObj.eventSlot = eventSlotId;
 
-  return await Booking.find(queryObj);
+  return await Booking.find(queryObj).populate({
+    path: "user",
+    select: "-_id -authId -createdAt -updatedAt -__v",
+  });
 };
 
 const activeDeactivateTrack = async (user, payload) => {
@@ -734,6 +740,9 @@ const rentersOnDate = async (user, query) => {
       $gte: startOfDay,
       $lte: endOfDay,
     },
+  }).populate({
+    path: "user",
+    select: "-_id -authId -createdAt -updatedAt -__v",
   });
 
   return { count: renters.length, renters };
