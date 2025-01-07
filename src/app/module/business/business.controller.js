@@ -103,7 +103,7 @@ const getMyBusiness = catchAsync(async (req, res) => {
 });
 
 const getAllBusiness = catchAsync(async (req, res) => {
-  const result = await BusinessService.getAllBusiness(req.query);
+  const result = await BusinessService.getAllBusiness(req.user, req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,

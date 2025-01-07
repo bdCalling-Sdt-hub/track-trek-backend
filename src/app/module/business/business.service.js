@@ -18,6 +18,7 @@ const {
   ENUM_SLOT_STATUS,
   ENUM_TRACK_STATUS,
 } = require("../../../util/enum");
+const Like = require("../like/like.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -585,7 +586,8 @@ const getMyBusiness = async (user, query) => {
   }
 };
 
-const getAllBusiness = async (query) => {
+const getAllBusiness = async (userData, query) => {
+  const { userId } = userData;
   const {
     event,
     track,
@@ -595,7 +597,7 @@ const getAllBusiness = async (query) => {
     status: eventStatus,
   } = query || {};
   let events = [];
-  let tracks = [];
+  let tracksWithLike = [];
   const searchFilters = {};
 
   if (longitude && latitude) {
@@ -612,6 +614,7 @@ const getAllBusiness = async (query) => {
 
   if (event) {
     if (eventStatus) searchFilters.status = eventStatus;
+
     events = await Event.find(searchFilters)
       .select(
         `
@@ -633,19 +636,33 @@ const getAllBusiness = async (query) => {
     if (category) searchFilters.category = category;
     searchFilters.status = ENUM_TRACK_STATUS.ACTIVE;
 
-    tracks = await Track.find(searchFilters)
-      .populate({
-        path: "host",
-        select: "-_id name profile_image",
-      })
-      .collation({ locale: "en", strength: 2 })
-      .lean();
+    const [tracks, userLikes] = await Promise.all([
+      Track.find(searchFilters)
+        .populate({
+          path: "host",
+          select: "-_id name profile_image",
+        })
+        .collation({ locale: "en", strength: 2 })
+        .lean(),
+      Like.find({ user: userId }).select("track"),
+    ]);
+
+    const likeTrackIds = new Set(
+      userLikes.map((like) => like.track.toString())
+    );
+
+    tracksWithLike = tracks.map((track) => {
+      return {
+        ...track,
+        isLiked: likeTrackIds.has(track._id.toString()),
+      };
+    });
 
     delete searchFilters["category"];
   }
 
   return {
-    tracks,
+    tracks: tracksWithLike,
     events,
   };
 };
