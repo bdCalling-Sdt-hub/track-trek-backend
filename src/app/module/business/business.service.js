@@ -18,6 +18,7 @@ const {
   ENUM_SLOT_STATUS,
   ENUM_TRACK_STATUS,
 } = require("../../../util/enum");
+const Like = require("../like/like.model");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -557,7 +558,6 @@ const getMyBusiness = async (user, query) => {
   const { userId } = user;
   const { data, booked } = query;
   let events = [];
-  let tracks = [];
 
   const statusFilter = booked
     ? { status: ENUM_EVENT_STATUS.FULL }
@@ -574,18 +574,26 @@ const getMyBusiness = async (user, query) => {
       events,
     };
   } else {
-    tracks = await Track.find({ host: userId }).populate({
-      path: "renters slots",
-    });
+    const [tracks, userLikes] = await Promise.all([
+      Track.find({ host: userId })
+        .populate({
+          path: "renters slots",
+        })
+        .lean(),
+      Like.find({ user: userId }).select("track"),
+    ]);
+
+    const tracksWithLike = getTracksWithLike(tracks, userLikes);
 
     return {
       count: tracks.length,
-      tracks,
+      tracks: tracksWithLike,
     };
   }
 };
 
-const getAllBusiness = async (query) => {
+const getAllBusiness = async (userData, query) => {
+  const { userId } = userData;
   const {
     event,
     track,
@@ -595,7 +603,7 @@ const getAllBusiness = async (query) => {
     status: eventStatus,
   } = query || {};
   let events = [];
-  let tracks = [];
+  let tracksWithLike = [];
   const searchFilters = {};
 
   if (longitude && latitude) {
@@ -612,6 +620,7 @@ const getAllBusiness = async (query) => {
 
   if (event) {
     if (eventStatus) searchFilters.status = eventStatus;
+
     events = await Event.find(searchFilters)
       .select(
         `
@@ -633,19 +642,24 @@ const getAllBusiness = async (query) => {
     if (category) searchFilters.category = category;
     searchFilters.status = ENUM_TRACK_STATUS.ACTIVE;
 
-    tracks = await Track.find(searchFilters)
-      .populate({
-        path: "host",
-        select: "-_id name profile_image",
-      })
-      .collation({ locale: "en", strength: 2 })
-      .lean();
+    const [tracks, userLikes] = await Promise.all([
+      Track.find(searchFilters)
+        .populate({
+          path: "host",
+          select: "-_id name profile_image",
+        })
+        .collation({ locale: "en", strength: 2 })
+        .lean(),
+      Like.find({ user: userId }).select("track"),
+    ]);
+
+    tracksWithLike = getTracksWithLike(tracks, userLikes);
 
     delete searchFilters["category"];
   }
 
   return {
-    tracks,
+    tracks: tracksWithLike,
     events,
   };
 };
@@ -752,7 +766,7 @@ const getAllNotifications = async (user) => {
   return Notification.find({ toId: user.userId });
 };
 
-// utility functions
+// utility functions =========================
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
   const endDate = moment(date).endOf("day").toDate();
@@ -770,6 +784,19 @@ const totalCalculator = (arrayOfObj, objKey) => {
   return arrayOfObj.reduce((acc, elem) => {
     return acc + elem[objKey];
   }, 0);
+};
+
+const getTracksWithLike = (tracks, userLikes) => {
+  const likeTrackIds = new Set(userLikes.map((like) => like.track.toString()));
+
+  const tracksWithLike = tracks.map((track) => {
+    return {
+      ...track,
+      isLiked: likeTrackIds.has(track._id.toString()),
+    };
+  });
+
+  return tracksWithLike;
 };
 
 const updateEventStatus = async () => {

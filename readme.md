@@ -17,6 +17,8 @@ manage section
 ## to do
 
 1. payment on total overview
+2. Connection error message.
+3. liked by
 
 ## needs test
 
