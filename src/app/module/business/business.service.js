@@ -558,7 +558,6 @@ const getMyBusiness = async (user, query) => {
   const { userId } = user;
   const { data, booked } = query;
   let events = [];
-  let tracks = [];
 
   const statusFilter = booked
     ? { status: ENUM_EVENT_STATUS.FULL }
@@ -575,13 +574,20 @@ const getMyBusiness = async (user, query) => {
       events,
     };
   } else {
-    tracks = await Track.find({ host: userId }).populate({
-      path: "renters slots",
-    });
+    const [tracks, userLikes] = await Promise.all([
+      Track.find({ host: userId })
+        .populate({
+          path: "renters slots",
+        })
+        .lean(),
+      Like.find({ user: userId }).select("track"),
+    ]);
+
+    const tracksWithLike = getTracksWithLike(tracks, userLikes);
 
     return {
       count: tracks.length,
-      tracks,
+      tracks: tracksWithLike,
     };
   }
 };
@@ -647,16 +653,7 @@ const getAllBusiness = async (userData, query) => {
       Like.find({ user: userId }).select("track"),
     ]);
 
-    const likeTrackIds = new Set(
-      userLikes.map((like) => like.track.toString())
-    );
-
-    tracksWithLike = tracks.map((track) => {
-      return {
-        ...track,
-        isLiked: likeTrackIds.has(track._id.toString()),
-      };
-    });
+    tracksWithLike = getTracksWithLike(tracks, userLikes);
 
     delete searchFilters["category"];
   }
@@ -769,7 +766,7 @@ const getAllNotifications = async (user) => {
   return Notification.find({ toId: user.userId });
 };
 
-// utility functions
+// utility functions =========================
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
   const endDate = moment(date).endOf("day").toDate();
@@ -787,6 +784,19 @@ const totalCalculator = (arrayOfObj, objKey) => {
   return arrayOfObj.reduce((acc, elem) => {
     return acc + elem[objKey];
   }, 0);
+};
+
+const getTracksWithLike = (tracks, userLikes) => {
+  const likeTrackIds = new Set(userLikes.map((like) => like.track.toString()));
+
+  const tracksWithLike = tracks.map((track) => {
+    return {
+      ...track,
+      isLiked: likeTrackIds.has(track._id.toString()),
+    };
+  });
+
+  return tracksWithLike;
 };
 
 const updateEventStatus = async () => {
