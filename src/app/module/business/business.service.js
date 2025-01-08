@@ -522,10 +522,15 @@ const getSingleBusiness = async (query) => {
   if (trackId) {
     if (getSlots) {
       const track = await Track.findById(trackId)
-        .populate({
-          path: "slots",
-          select: "-createdAt -updatedAt -__v",
-        })
+        .populate([
+          {
+            path: "slots",
+            select: "-createdAt -updatedAt -__v",
+          },
+          {
+            path: "renters",
+          },
+        ])
         .lean();
 
       return track;
@@ -545,7 +550,9 @@ const getSingleBusiness = async (query) => {
         unsold: trackSlot.maxPeople - bookedSeats,
       };
     } else {
-      const track = await Track.findById(trackId).lean();
+      const track = await Track.findById(trackId)
+        .populate({ path: "renters" })
+        .lean();
 
       if (!track) throw new ApiError(status.NOT_FOUND, "Track not found");
 
