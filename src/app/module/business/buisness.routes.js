@@ -7,6 +7,7 @@ const { BusinessController } = require("./business.controller");
 const router = express.Router();
 
 router
+  .get("/link", BusinessController.linkPage)
   .post(
     "/track",
     auth(ENUM_USER_ROLE.HOST),

@@ -2,6 +2,10 @@ const { BusinessService } = require("./business.service");
 const sendResponse = require("../../../shared/sendResponse");
 const catchAsync = require("../../../shared/catchAsync");
 
+const linkPage = catchAsync(async (req, res) => {
+  res.render("link.ejs");
+});
+
 const createEvent = catchAsync(async (req, res) => {
   const result = await BusinessService.createEvent(req);
   sendResponse(res, {
@@ -176,6 +180,7 @@ const getAllNotifications = catchAsync(async (req, res) => {
 });
 
 const BusinessController = {
+  linkPage,
   createEvent,
   joinEvent,
   createTrack,

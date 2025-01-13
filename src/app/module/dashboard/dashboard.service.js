@@ -399,8 +399,7 @@ const getBookings = async (query) => {
 
 // user-host management ========================
 const getAllUser = async (query) => {
-  const { role } = query;
-
+  const { role, ...newQuery } = query;
   validateFields(query, ["role"]);
 
   const allowedRoles = [ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST];
@@ -408,7 +407,15 @@ const getAllUser = async (query) => {
   if (!allowedRoles.includes(role))
     throw new ApiError(status.BAD_REQUEST, "Invalid role");
 
-  const usersQuery = new QueryBuilder(User.find().lean(), query)
+  const emailObj = await Auth.find({ role }).select("-_id email");
+  const emails = emailObj.map((obj) => obj.email);
+
+  const usersQuery = new QueryBuilder(
+    User.find({ email: { $in: emails } })
+      .populate("authId")
+      .lean(),
+    newQuery
+  )
     .search(["name", "email"])
     .filter()
     .sort()

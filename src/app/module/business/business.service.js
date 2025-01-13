@@ -77,6 +77,8 @@ const joinEvent = async (user, payload) => {
   const { eventId, slotId, data, price } = payload;
   let bookings = [];
 
+  // console.log("=========================", data);
+
   const session = await mongoose.startSession();
 
   validateFields(payload, ["eventId", "price", "data"]);
@@ -177,9 +179,15 @@ const joinEvent = async (user, payload) => {
 
     return bookings;
   } catch (error) {
+    // console.log("catch==============", session.transaction.state);
+    // if (session.transaction.state === "TRANSACTION_STARTED") {
+    //   await session.abortTransaction();
+    // }
     await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);
   } finally {
+    // console.log("finally=================", session.transaction.state);
+    // await session.endSession();
     session.endSession();
   }
 };
@@ -450,7 +458,7 @@ const bookASlot = async (user, payload) => {
   if (!slot) throw new ApiError(status.NOT_FOUND, "Slot not found");
 
   const currentBookedSeats = totalCalculator(bookedSlots, "numOfPeople");
-  const newBookedSeats = currentBookedSeats + numOfPeople;
+  const newBookedSeats = currentBookedSeats + Number(numOfPeople);
   const totalSeats = slot.maxPeople;
 
   if (newBookedSeats > totalSeats)
@@ -565,7 +573,6 @@ const getMyBusiness = async (user, query) => {
   const { userId } = user;
   const { data, booked } = query;
   let events = [];
-
   const statusFilter = booked
     ? { status: ENUM_EVENT_STATUS.FULL }
     : { status: { $exists: true } };
@@ -687,6 +694,7 @@ const getBookings = async (user, query) => {
     user: userId,
     endDateTime: history ? { $lt: now } : { $gte: now },
   };
+
   const populateObj = {
     path: data === "event" ? "event eventSlot" : "trackSlot",
     select:
@@ -695,11 +703,8 @@ const getBookings = async (user, query) => {
         : "day slotNo -_id",
   };
 
-  if (data === "event") {
-    queryObj.event = { $exists: true };
-  } else {
-    queryObj.track = { $exists: true };
-  }
+  if (data === "event") queryObj.event = { $exists: true };
+  else queryObj.track = { $exists: true };
 
   const bookings = await Booking.find(queryObj).populate(populateObj).lean();
   return bookings;
