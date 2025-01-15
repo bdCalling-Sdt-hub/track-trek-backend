@@ -2,13 +2,24 @@ const express = require("express");
 const auth = require("../../middleware/auth");
 const { ENUM_USER_ROLE } = require("../../../util/enum");
 const { PaymentController } = require("./payment.controller");
+const { uploadFile } = require("../../middleware/fileUploader");
 
 const router = express.Router();
 
-router.post("/create-payment-intent", PaymentController.payPage);
-//   .get("/pay", PaymentController.payPage)
-//   .get("/success", PaymentController.successPage)
-//   .get("/cancel", PaymentController.cancelPage)
+router
+  .post(
+    "/checkout",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+    PaymentController.createCheckout
+  )
+  .post(
+    "/checkout-promotion",
+    auth(ENUM_USER_ROLE.HOST),
+    uploadFile(),
+    PaymentController.createCheckoutForPromotion
+  )
+  .get("/success", PaymentController.successPage)
+  .get("/cancel", PaymentController.cancelPage);
 //   .get(
 //     "/get-all-payment",
 //     auth(ENUM_USER_ROLE.ADMIN),

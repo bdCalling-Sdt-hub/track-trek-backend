@@ -3,30 +3,38 @@ const ObjectId = Schema.Types.ObjectId;
 
 const paymentSchema = new Schema(
   {
-    track: {
-      type: ObjectId,
-      ref: "Track",
-      required: true,
-    },
     user: {
       type: ObjectId,
       ref: "User",
-      required: true,
     },
     host: {
       type: ObjectId,
       ref: "User",
+    },
+    event: {
+      type: ObjectId,
+      ref: "Event",
+    },
+    track: {
+      type: ObjectId,
+      ref: "Track",
+    },
+    bookingId: {
+      type: ObjectId,
+      ref: "Booking",
+    },
+    businessType: {
+      type: String,
+      enum: ["track", "event"],
       required: true,
+    },
+    isPromotion: {
+      type: Boolean,
+      default: false,
     },
     amount: {
       type: Number,
       required: true,
-    },
-    refund_amount: {
-      type: Number,
-    },
-    transferred_amount: {
-      type: Number,
     },
     checkout_session_id: {
       type: String,
@@ -34,9 +42,6 @@ const paymentSchema = new Schema(
       required: true,
     },
     payment_intent_id: {
-      type: String,
-    },
-    receipt_url: {
       type: String,
     },
     status: {

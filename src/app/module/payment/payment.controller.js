@@ -1,20 +1,42 @@
-const { PaymentService } = require("./payment.service");
 const sendResponse = require("../../../shared/sendResponse");
 const catchAsync = require("../../../shared/catchAsync");
-const { StripeService } = require("./stripe.service");
+const StripeService = require("./stripe.service");
 
-const getAllPayment = catchAsync(async (req, res) => {
-  const result = await PaymentService.getAllPayment(req.query);
+const successPage = catchAsync(async (req, res) => {
+  res.render("success.ejs");
+});
+
+const cancelPage = catchAsync(async (req, res) => {
+  res.render("cancel.ejs");
+});
+
+const createCheckout = catchAsync(async (req, res) => {
+  const result = await StripeService.createCheckout(req.user, req.body);
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Payment retrieval Successful",
+    message: "Payment initialized",
     data: result,
   });
 });
 
-const createPaymentIntent = catchAsync(async (req, res) => {
-  const result = await PaymentService.createPaymentIntent(req.query);
+const createCheckoutForPromotion = catchAsync(async (req, res) => {
+  const result = await StripeService.createCheckoutForPromotion(req);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Payment initialized",
+    data: result,
+  });
+});
+
+const webhookManager = catchAsync(async (req, res) => {
+  await StripeService.webhookManager(req);
+  res.send();
+});
+
+const getAllPayment = catchAsync(async (req, res) => {
+  const result = await PaymentService.getAllPayment(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -44,21 +66,15 @@ const getPayoutInfo = catchAsync(async (req, res) => {
   });
 });
 
-const transferPayment = catchAsync(async (req, res) => {
-  const result = await StripeService.transferPayment(req.body);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Payment transfer successful",
-    data: result,
-  });
-});
-
 const PaymentController = {
+  successPage,
+  cancelPage,
+  createCheckout,
+  createCheckoutForPromotion,
+  webhookManager,
   getAllPayment,
   updateHostPaymentDetails,
   getPayoutInfo,
-  transferPayment,
 };
 
 module.exports = { PaymentController };
