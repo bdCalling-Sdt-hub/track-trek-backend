@@ -17,8 +17,10 @@ const {
   ENUM_EVENT_STATUS,
   ENUM_SLOT_STATUS,
   ENUM_TRACK_STATUS,
+  ENUM_PROMOTION_STATUS,
 } = require("../../../util/enum");
 const Like = require("../like/like.model");
+const Promotion = require("../../promotion/Promotion");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -778,6 +780,12 @@ const getAllNotifications = async (user) => {
   return Notification.find({ toId: user.userId });
 };
 
+const getPromotedTracks = async (query) => {
+  return Promotion.find({ status: ENUM_PROMOTION_STATUS.PAID }).select(
+    "-_id track banner_image"
+  );
+};
+
 // utility functions =========================
 const getBookedSlotsOnDate = async (date, dynamicData) => {
   const startDate = moment(date).startOf("day").toDate();
@@ -867,6 +875,7 @@ const BusinessService = {
   activeDeactivateTrack,
   rentersOnDate,
   getAllNotifications,
+  getPromotedTracks,
 };
 
 module.exports = { BusinessService };
