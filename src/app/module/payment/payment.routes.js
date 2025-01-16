@@ -7,6 +7,10 @@ const { uploadFile } = require("../../middleware/fileUploader");
 const router = express.Router();
 
 router
+  .get("/success", PaymentController.successPage)
+  .get("/cancel", PaymentController.cancelPage)
+  .get("/reauth", PaymentController.reauthPage)
+  .post("/onboarding", auth(ENUM_USER_ROLE.HOST), PaymentController.onboarding)
   .post(
     "/checkout",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
@@ -17,9 +21,7 @@ router
     auth(ENUM_USER_ROLE.HOST),
     uploadFile(),
     PaymentController.createCheckoutForPromotion
-  )
-  .get("/success", PaymentController.successPage)
-  .get("/cancel", PaymentController.cancelPage);
+  );
 //   .get(
 //     "/get-all-payment",
 //     auth(ENUM_USER_ROLE.ADMIN),

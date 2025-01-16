@@ -17,6 +17,26 @@ const Promotion = require("../../promotion/Promotion");
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
 
+const onboarding = async (userData) => {
+  const account = await stripe.accounts.create({
+    country: "US",
+    email: "jenny.rosen@example.com",
+    controller: {
+      fees: {
+        payer: "application",
+      },
+      losses: {
+        payments: "application",
+      },
+      stripe_dashboard: {
+        type: "express",
+      },
+    },
+  });
+
+  return account;
+};
+
 const createCheckout = async (userData, payload) => {
   const { userId } = userData || {};
   const { businessId, bookingId, businessType, isPromotion, amount } =
@@ -200,6 +220,7 @@ const updatePayment = async (eventData) => {
 };
 
 const StripeService = {
+  onboarding,
   createCheckout,
   createCheckoutForPromotion,
   webhookManager,

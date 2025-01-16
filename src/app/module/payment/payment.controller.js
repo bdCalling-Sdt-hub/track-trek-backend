@@ -10,6 +10,20 @@ const cancelPage = catchAsync(async (req, res) => {
   res.render("cancel.ejs");
 });
 
+const reauthPage = catchAsync(async (req, res) => {
+  res.render("reauth.ejs");
+});
+
+const onboarding = catchAsync(async (req, res) => {
+  const result = await StripeService.onboarding(req.user, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Onboarding initialized",
+    data: result,
+  });
+});
+
 const createCheckout = catchAsync(async (req, res) => {
   const result = await StripeService.createCheckout(req.user, req.body);
   sendResponse(res, {
@@ -69,6 +83,8 @@ const getPayoutInfo = catchAsync(async (req, res) => {
 const PaymentController = {
   successPage,
   cancelPage,
+  reauthPage,
+  onboarding,
   createCheckout,
   createCheckoutForPromotion,
   webhookManager,

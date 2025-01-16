@@ -13,7 +13,7 @@ router
   )
   .get(
     "/get-feedback",
-    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
     FeedbackController.getFeedback
   )
   .get(
