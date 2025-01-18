@@ -15,7 +15,7 @@ const postFeedback = async (userData, payload) => {
 
   const result = await Feedback.create(feedbackData);
 
-  postNotification(userId, "Thank You", "Thank you for your valuable feedback");
+  postNotification("Thank You", "Thank you for your valuable feedback", userId);
 
   return result;
 };

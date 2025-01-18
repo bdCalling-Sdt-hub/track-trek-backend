@@ -13,44 +13,27 @@ const Track = require("../track/track.model");
 const Booking = require("../booking/booking.model");
 const Payment = require("./payment.model");
 const Promotion = require("../../promotion/Promotion");
+const PayoutInfo = require("./PayoutInfo");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
 
 const onboarding = async (userData) => {
-  const country = {
-    ireland: "IE",
-    uk: "UK",
-  };
-
   const accountData = {
-    country: "AU",
-    // email: "jenny.rosen@example.com",
+    country: "GB",
+    type: "express",
     capabilities: {
-      // card_payments: { requested: true },
+      card_payments: { requested: true },
       transfers: { requested: true },
-    },
-    controller: {
-      fees: {
-        payer: "application",
-      },
-      losses: {
-        payments: "application",
-      },
-      stripe_dashboard: {
-        type: "express",
-      },
     },
   };
 
   const account = await stripe.accounts.create(accountData);
 
-  console.log(account);
-
   const accountLinkData = {
     account: account.id,
     refresh_url: `http://${config.base_url}:${config.port}/payment/reauth`,
-    return_url: `http://${config.base_url}:${config.port}/payment/return`,
+    return_url: `http://${config.base_url}:${config.port}/payment/return?connectedAccountId=${account.id}&hostId=${userData.userId}`,
     type: "account_onboarding",
   };
 
@@ -199,6 +182,7 @@ const createCheckoutForPromotion = async (req) => {
 const webhookManager = async (req) => {
   const sig = req.headers["stripe-signature"];
   let event;
+  const date = new Date();
 
   console.log("webhook hit");
 
@@ -214,8 +198,42 @@ const webhookManager = async (req) => {
       updatePayment(event.data.object);
       break;
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(
+        `${date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} Unhandled event type (${
+          event.type
+        })`
+      );
   }
+};
+
+// save business payout info after successful onboarding
+const savePayoutInfo = async (query) => {
+  const { connectedAccountId, hostId } = query;
+
+  const bankAccounts = await stripe.accounts.listExternalAccounts(
+    connectedAccountId,
+    { object: "bank_account" }
+  );
+
+  const payoutData = {
+    host: hostId,
+    stripe_account_id: connectedAccountId,
+    bank_account_no_last4: bankAccounts.data[0].last4,
+    routing_no: bankAccounts.data[0].routing_number,
+  };
+
+  const payoutInfo = await PayoutInfo.create(payoutData);
+};
+
+const getBankAccountDetails = async (connectedAccountId) => {
+  const bankAccounts = await stripe.accounts.listExternalAccounts(
+    // connectedAccountId,
+    "acct_1QiU2yBG91GJM2ry",
+    {
+      object: "bank_account",
+    }
+  );
+  return bankAccounts;
 };
 
 // utility function
@@ -248,6 +266,8 @@ const StripeService = {
   createCheckout,
   createCheckoutForPromotion,
   webhookManager,
+  savePayoutInfo,
+  getBankAccountDetails,
 };
 
 module.exports = StripeService;

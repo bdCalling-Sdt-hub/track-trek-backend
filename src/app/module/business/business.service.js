@@ -583,7 +583,9 @@ const getMyBusiness = async (user, query) => {
     events = await Event.find({
       host: userId,
       ...statusFilter,
-    }).populate("slots");
+    })
+      .populate("slots")
+      .sort("-createdAt");
 
     return {
       count: events.length,
@@ -595,6 +597,7 @@ const getMyBusiness = async (user, query) => {
         .populate({
           path: "renters slots",
         })
+        .sort("-createdAt")
         .lean(),
       Like.find({ user: userId }).select("track"),
     ]);
@@ -649,6 +652,7 @@ const getAllBusiness = async (userData, query) => {
         -__v
         `
       )
+      .sort("-createdAt")
       .lean();
 
     delete searchFilters["status"];
@@ -665,6 +669,7 @@ const getAllBusiness = async (userData, query) => {
           select: "-_id name profile_image",
         })
         .collation({ locale: "en", strength: 2 })
+        .sort("-createdAt")
         .lean(),
       Like.find({ user: userId }).select("track"),
     ]);
