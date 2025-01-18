@@ -22,21 +22,31 @@ router
     auth(ENUM_USER_ROLE.HOST),
     uploadFile(),
     PaymentController.createCheckoutForPromotion
+  )
+  //   .get(
+  //     "/get-all-payment",
+  //     auth(ENUM_USER_ROLE.ADMIN),
+  //     PaymentController.getAllPayment
+  //   )
+  //   .post(
+  //     "/checkout",
+  //     auth(ENUM_USER_ROLE.USER),
+  //     PaymentController.createCheckout
+  //   )
+  .get(
+    "/get-all-payout-info",
+    auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    PaymentController.getAllPayoutInfo
+  )
+  .get(
+    "/get-single-payout-info",
+    auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    PaymentController.getSinglePayoutInfo
+  )
+  .get(
+    "/get-bank-details",
+    auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    PaymentController.getBankAccountDetails
   );
-//   .get(
-//     "/get-all-payment",
-//     auth(ENUM_USER_ROLE.ADMIN),
-//     PaymentController.getAllPayment
-//   )
-//   .post(
-//     "/checkout",
-//     auth(ENUM_USER_ROLE.USER),
-//     PaymentController.createCheckout
-//   )
-//   .get(
-//     "/get-payout-info",
-//     auth(ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
-//     PaymentController.getPayoutInfo
-//   );
 
 module.exports = router;

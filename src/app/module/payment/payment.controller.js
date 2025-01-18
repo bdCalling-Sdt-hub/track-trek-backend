@@ -1,6 +1,7 @@
 const sendResponse = require("../../../shared/sendResponse");
 const catchAsync = require("../../../shared/catchAsync");
 const StripeService = require("./stripe.service");
+const { PaymentService } = require("./payment.service");
 
 const successPage = catchAsync(async (req, res) => {
   res.render("success.ejs");
@@ -15,6 +16,7 @@ const reauthPage = catchAsync(async (req, res) => {
 });
 
 const returnPage = catchAsync(async (req, res) => {
+  await StripeService.savePayoutInfo(req.query);
   res.render("return.ejs");
 });
 
@@ -74,12 +76,32 @@ const updateHostPaymentDetails = catchAsync(async (req, res) => {
   });
 });
 
-const getPayoutInfo = catchAsync(async (req, res) => {
-  const result = await StripeService.getPayoutInfo(req.user);
+const getBankAccountDetails = catchAsync(async (req, res) => {
+  const result = await StripeService.getBankAccountDetails(req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Bank account retrieved",
+    data: result,
+  });
+});
+
+const getAllPayoutInfo = catchAsync(async (req, res) => {
+  const result = await PaymentService.getAllPayoutInfo(req.query);
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Host payout info retrieved",
+    data: result,
+  });
+});
+
+const getSinglePayoutInfo = catchAsync(async (req, res) => {
+  const result = await PaymentService.getSinglePayoutInfo(req.user);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Business payout info retrieved",
     data: result,
   });
 });
@@ -95,7 +117,9 @@ const PaymentController = {
   webhookManager,
   getAllPayment,
   updateHostPaymentDetails,
-  getPayoutInfo,
+  getAllPayoutInfo,
+  getBankAccountDetails,
+  getSinglePayoutInfo,
 };
 
 module.exports = { PaymentController };
