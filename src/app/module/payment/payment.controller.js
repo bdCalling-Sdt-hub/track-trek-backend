@@ -14,6 +14,10 @@ const reauthPage = catchAsync(async (req, res) => {
   res.render("reauth.ejs");
 });
 
+const returnPage = catchAsync(async (req, res) => {
+  res.render("return.ejs");
+});
+
 const onboarding = catchAsync(async (req, res) => {
   const result = await StripeService.onboarding(req.user, req.body);
   sendResponse(res, {
@@ -84,6 +88,7 @@ const PaymentController = {
   successPage,
   cancelPage,
   reauthPage,
+  returnPage,
   onboarding,
   createCheckout,
   createCheckoutForPromotion,

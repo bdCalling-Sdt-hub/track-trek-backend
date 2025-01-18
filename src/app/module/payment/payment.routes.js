@@ -10,6 +10,7 @@ router
   .get("/success", PaymentController.successPage)
   .get("/cancel", PaymentController.cancelPage)
   .get("/reauth", PaymentController.reauthPage)
+  .get("/return", PaymentController.returnPage)
   .post("/onboarding", auth(ENUM_USER_ROLE.HOST), PaymentController.onboarding)
   .post(
     "/checkout",

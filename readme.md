@@ -28,3 +28,8 @@ manage section
 ## issues
 
 1. when showing participants of a track slot. do not show expired ones
+
+# Darrens credentials
+
+db_user=mytrackDB
+db_pass=E7iFCfwdLk1tBdSY

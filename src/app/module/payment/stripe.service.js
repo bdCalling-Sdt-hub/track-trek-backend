@@ -18,9 +18,18 @@ const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
 
 const onboarding = async (userData) => {
-  const account = await stripe.accounts.create({
-    country: "US",
-    email: "jenny.rosen@example.com",
+  const country = {
+    ireland: "IE",
+    uk: "UK",
+  };
+
+  const accountData = {
+    country: "AU",
+    // email: "jenny.rosen@example.com",
+    capabilities: {
+      // card_payments: { requested: true },
+      transfers: { requested: true },
+    },
     controller: {
       fees: {
         payer: "application",
@@ -32,9 +41,24 @@ const onboarding = async (userData) => {
         type: "express",
       },
     },
-  });
+  };
 
-  return account;
+  const account = await stripe.accounts.create(accountData);
+
+  console.log(account);
+
+  const accountLinkData = {
+    account: account.id,
+    refresh_url: `http://${config.base_url}:${config.port}/payment/reauth`,
+    return_url: `http://${config.base_url}:${config.port}/payment/return`,
+    type: "account_onboarding",
+  };
+
+  const accountLink = await stripe.accountLinks.create(accountLinkData);
+
+  return {
+    accountLink,
+  };
 };
 
 const createCheckout = async (userData, payload) => {
