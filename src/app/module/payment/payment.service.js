@@ -28,7 +28,12 @@ const getAllPayment = async (query) => {
 };
 
 const getAllPayoutInfo = async (query) => {
-  const payoutQuery = new QueryBuilder(PayoutInfo.find({}), query)
+  const payoutQuery = new QueryBuilder(
+    PayoutInfo.find({}).populate([
+      { path: "host", select: "name email address profile_image phoneNumber" },
+    ]),
+    query
+  )
     .search(["stripe_account_id", "bank_account_no_last4", "routing_no"])
     .filter()
     .sort()
@@ -49,7 +54,11 @@ const getAllPayoutInfo = async (query) => {
 const getSinglePayoutInfo = async (userData) => {
   const { userId } = userData;
 
-  const existingPayoutInfo = await PayoutInfo.findOne({ host: userId });
+  const existingPayoutInfo = await PayoutInfo.findOne({
+    host: userId,
+  }).populate([
+    { path: "host", select: "name email address profile_image phoneNumber" },
+  ]);
   if (!existingPayoutInfo)
     throw new ApiError(
       status.NOT_FOUND,
