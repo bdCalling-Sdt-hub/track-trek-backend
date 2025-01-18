@@ -45,7 +45,8 @@ const config = {
     api_key: process.env.SEND_GRIDAPI_KEY,
   },
   stripe: {
-    stripe_secret_key: process.env.STRIPE_SECRET_KEY,
+    secret_key: process.env.STRIPE_SECRET_KEY,
+    end_point_secret: process.env.STRIPE_END_POINT_SECRET,
   },
 };
 

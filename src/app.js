@@ -1,32 +1,24 @@
 const express = require("express");
 const cors = require("cors");
 const globalErrorHandler = require("./app/middleware/globalErrorHandler");
-const routes = require("./app/routes");
 const NotFoundHandler = require("./error/NotFoundHandler");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const corsOptions = require("./helper/corsOptions");
+const routes = require("./app/routes");
+const webhookRoutes = require("./app/module/payment/webhook.routes");
 
 const app = express();
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5175",
-      "http://localhost:5174",
-    ],
-    credentials: true,
-  })
-);
-
+app.use(cors(corsOptions));
+app.use("/stripe/webhook", webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use("/uploads", express.static("uploads"));
-
 app.use("/", routes);
 
 app.get("/.well-known/assetlinks.json", (req, res) => {

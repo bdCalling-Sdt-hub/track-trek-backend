@@ -22,6 +22,8 @@ const uploadFile = () => {
         uploadPath = "uploads/images/event";
       else if (file.fieldname === "category_image")
         uploadPath = "uploads/images/category";
+      else if (file.fieldname === "banner_image")
+        uploadPath = "uploads/images/banner";
       else uploadPath = "uploads";
 
       createDirIfNotExists(uploadPath);
@@ -44,6 +46,7 @@ const uploadFile = () => {
       "track_image",
       "event_image",
       "category_image",
+      "banner_image",
     ];
 
     // Allow requests without files (when there's no fieldname)
@@ -66,6 +69,7 @@ const uploadFile = () => {
     { name: "track_image", maxCount: 5 },
     { name: "event_image", maxCount: 5 },
     { name: "category_image", maxCount: 1 },
+    { name: "banner_image", maxCount: 1 },
   ]);
 
   return upload;

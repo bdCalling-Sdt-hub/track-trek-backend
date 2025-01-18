@@ -45,7 +45,7 @@ const getMyFeedback = async (userData) => {
 
 const getAllFeedback = async (query) => {
   const feedbackQuery = new QueryBuilder(Feedback.find({}), query)
-    .search([])
+    .search(["userName", "feedback"])
     .filter()
     .sort()
     .paginate()

@@ -86,6 +86,11 @@ router
     "/get-all-notifications",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
     BusinessController.getAllNotifications
+  )
+  .get(
+    "/get-promoted-tracks",
+    auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST, ENUM_USER_ROLE.ADMIN),
+    BusinessController.getPromotedTracks
   );
 
 module.exports = router;

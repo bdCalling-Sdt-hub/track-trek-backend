@@ -179,6 +179,16 @@ const getAllNotifications = catchAsync(async (req, res) => {
   });
 });
 
+const getPromotedTracks = catchAsync(async (req, res) => {
+  const result = await BusinessService.getPromotedTracks(req.query);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Promoted tracks retrieved",
+    data: result,
+  });
+});
+
 const BusinessController = {
   linkPage,
   createEvent,
@@ -198,6 +208,7 @@ const BusinessController = {
   activeDeactivateTrack,
   rentersOnDate,
   getAllNotifications,
+  getPromotedTracks,
 };
 
 module.exports = { BusinessController };

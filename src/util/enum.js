@@ -22,8 +22,18 @@ const ENUM_TRACK_STATUS = {
 };
 
 const ENUM_PAYMENT_STATUS = {
-  PAID: "paid",
+  SUCCEEDED: "succeeded",
   UNPAID: "unpaid",
+};
+
+const ENUM_PROMOTION_STATUS = {
+  UNPAID: "unpaid",
+  PAID: "paid",
+};
+
+const ENUM_BUSINESS_TYPE = {
+  TRACK: "track",
+  EVENT: "event",
 };
 
 module.exports = {
@@ -32,4 +42,6 @@ module.exports = {
   ENUM_TRACK_STATUS,
   ENUM_SLOT_STATUS,
   ENUM_PAYMENT_STATUS,
+  ENUM_PROMOTION_STATUS,
+  ENUM_BUSINESS_TYPE,
 };
