@@ -13,9 +13,9 @@ router
   .get("/return", PaymentController.returnPage)
   .post("/onboarding", auth(ENUM_USER_ROLE.HOST), PaymentController.onboarding)
   .post(
-    "/checkout",
+    "/checkout-booking",
     auth(ENUM_USER_ROLE.USER, ENUM_USER_ROLE.HOST),
-    PaymentController.createCheckout
+    PaymentController.createCheckoutForBooking
   )
   .post(
     "/checkout-promotion",

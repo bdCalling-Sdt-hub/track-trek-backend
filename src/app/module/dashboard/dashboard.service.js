@@ -376,11 +376,18 @@ const getBookings = async (query) => {
 
   const bookingQuery = new QueryBuilder(
     Booking.find(queryObj)
-      .populate({ path: "user host eventSlot trackSlot" })
+      .populate([
+        { path: "user", select: "name phoneNumber profile_image" },
+        { path: "host", select: "name phoneNumber profile_image" },
+        { path: "event", select: "eventName" },
+        { path: "eventSlot", select: "slotNo" },
+        { path: "track", select: "trackName" },
+        { path: "trackSlot", select: "slotNo" },
+      ])
       .lean(),
     newQuery
   )
-    .search(["price bookingFor"])
+    .search([])
     .filter()
     .sort()
     .paginate()

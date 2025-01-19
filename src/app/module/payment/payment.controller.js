@@ -30,12 +30,15 @@ const onboarding = catchAsync(async (req, res) => {
   });
 });
 
-const createCheckout = catchAsync(async (req, res) => {
-  const result = await StripeService.createCheckout(req.user, req.body);
+const createCheckoutForBooking = catchAsync(async (req, res) => {
+  const result = await StripeService.createCheckoutForBooking(
+    req.user,
+    req.body
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Payment initialized",
+    message: "Payment for booking initialized",
     data: result,
   });
 });
@@ -112,7 +115,7 @@ const PaymentController = {
   reauthPage,
   returnPage,
   onboarding,
-  createCheckout,
+  createCheckoutForBooking,
   createCheckoutForPromotion,
   webhookManager,
   getAllPayment,

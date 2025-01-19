@@ -15,9 +15,17 @@ const paymentSchema = new Schema(
       type: ObjectId,
       ref: "Event",
     },
+    eventSlot: {
+      type: ObjectId,
+      ref: "EventSlot",
+    },
     track: {
       type: ObjectId,
       ref: "Track",
+    },
+    trackSlot: {
+      type: ObjectId,
+      ref: "TrackSlot",
     },
     bookingId: {
       type: ObjectId,
