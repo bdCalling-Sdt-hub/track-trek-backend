@@ -119,12 +119,12 @@ const createCheckoutForBooking = async (userData, payload) => {
 const createCheckoutForPromotion = async (req) => {
   const { user, body: payload, files } = req;
   const { userId } = user;
-  const { trackId, amount } = payload || {};
+  const { trackId } = payload || {};
   let track = {};
   let session = {};
 
   validateFields(files, ["banner_image"]);
-  validateFields(payload, ["trackId", "amount"]);
+  validateFields(payload, ["trackId"]);
 
   const sessionData = {
     payment_method_types: ["card"],
@@ -136,9 +136,9 @@ const createCheckoutForPromotion = async (req) => {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Track Promotion",
+            name: "Promoting your track for",
           },
-          unit_amount: Number(amount) * 100,
+          unit_amount: 20 * 100,
         },
         quantity: 1,
       },
@@ -164,7 +164,7 @@ const createCheckoutForPromotion = async (req) => {
     trackId,
     businessType: ENUM_BUSINESS_TYPE.TRACK,
     isPromotion: true,
-    amount,
+    amount: 10,
     checkout_session_id,
   };
   const promotionData = {
