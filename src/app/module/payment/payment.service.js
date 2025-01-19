@@ -4,10 +4,11 @@ const ApiError = require("../../../error/ApiError");
 const QueryBuilder = require("../../../builder/queryBuilder");
 const Payment = require("./payment.model");
 const PayoutInfo = require("./PayoutInfo");
+const { ENUM_PAYMENT_STATUS } = require("../../../util/enum");
 
 const getAllPayment = async (query) => {
   const paymentQuery = new QueryBuilder(
-    Payment.find({}).populate([
+    Payment.find({ status: ENUM_PAYMENT_STATUS.SUCCEEDED }).populate([
       {
         path: "user",
         select: "-_id name profile_image phoneNumber",

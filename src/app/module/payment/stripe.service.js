@@ -7,6 +7,7 @@ const {
   ENUM_BUSINESS_TYPE,
   ENUM_PAYMENT_STATUS,
   ENUM_PROMOTION_STATUS,
+  ENUM_BOOKING_STATUS,
 } = require("../../../util/enum");
 const Event = require("../event/event.model");
 const Track = require("../track/track.model");
@@ -44,17 +45,25 @@ const onboarding = async (userData) => {
   };
 };
 
-const createCheckout = async (userData, payload) => {
-  validateFields(payload, ["businessId", "businessType", "amount"]);
+const createCheckoutForBooking = async (userData, payload) => {
+  validateFields(payload, ["bookingId", "amount"]);
 
-  const { userId } = userData || {};
-  const { businessId, bookingId, businessType, isPromotion, amount } =
-    payload || {};
-  let business = {};
-  let booking = {};
+  const { userId } = userData;
+  const { bookingId, amount } = payload;
   let session = {};
 
-  const Model = businessType === ENUM_BUSINESS_TYPE.EVENT ? Event : Track;
+  // validate booking
+  const booking = await Booking.findById(bookingId)
+    .select("user host event eventSlot track trackSlot")
+    .lean();
+  if (!booking) throw new ApiError(status.NOT_FOUND, "Booking not found");
+
+  // validate business
+  const isEventBooking = Boolean(booking.event);
+  const Model = isEventBooking ? Event : Track;
+  const businessId = isEventBooking ? booking.event : booking.track;
+  const business = await Model.findById(businessId).select("_id").lean();
+  if (!business) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
   const sessionData = {
     payment_method_types: ["card"],
@@ -64,7 +73,7 @@ const createCheckout = async (userData, payload) => {
     line_items: [
       {
         price_data: {
-          currency: "usd",
+          currency: "gbp",
           product_data: {
             name: "Amount",
           },
@@ -76,33 +85,28 @@ const createCheckout = async (userData, payload) => {
   };
 
   try {
-    [business, booking, session] = await Promise.all([
-      Model.findById(businessId),
-      Booking.findById(bookingId),
-      stripe.checkout.sessions.create(sessionData),
-    ]);
+    session = await stripe.checkout.sessions.create(sessionData);
   } catch (error) {
     console.log(error);
     errorLogger.error(error.message);
   }
 
-  if (!business) throw new ApiError(status.NOT_FOUND, "Business not found");
-  if (bookingId)
-    if (!booking) throw new ApiError(status.NOT_FOUND, "Booking not found");
-
   const { id: checkout_session_id, url } = session || {};
 
   const paymentData = {
-    ...(!isPromotion && { user: userId }),
-    ...(isPromotion && { host: userId }),
-
-    ...(businessType === ENUM_BUSINESS_TYPE.TRACK && { track: businessId }),
-    ...(businessType === ENUM_BUSINESS_TYPE.EVENT && { event: businessId }),
-
-    ...(!isPromotion && { bookingId: bookingId }),
-    ...(isPromotion && { isPromotion }),
-
-    businessType,
+    bookingId: booking._id,
+    ...(isEventBooking && {
+      event: businessId,
+      eventSlot: booking.eventSlot,
+      businessType: ENUM_BUSINESS_TYPE.EVENT,
+    }),
+    ...(!isEventBooking && {
+      track: businessId,
+      trackSlot: booking.trackSlot,
+      businessType: ENUM_BUSINESS_TYPE.TRACK,
+    }),
+    user: userId,
+    host: booking.host,
     amount,
     checkout_session_id,
   };
@@ -238,7 +242,6 @@ const getBankAccountDetails = async (connectedAccountId) => {
 // ** utility function
 const updatePaymentAndRelated = async (eventData) => {
   const { id, payment_intent } = eventData;
-
   // const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
 
   const payment = await Payment.findOneAndUpdate(
@@ -252,6 +255,7 @@ const updatePaymentAndRelated = async (eventData) => {
     { new: true }
   );
 
+  // Update booking or promotion details based on the payment type by verifying the payment data stored during the checkout session.
   if (payment.isPromotion) {
     const promotion = await Promotion.findOneAndUpdate(
       {
@@ -259,12 +263,16 @@ const updatePaymentAndRelated = async (eventData) => {
       },
       { status: ENUM_PROMOTION_STATUS.PAID }
     );
+  } else {
+    const updatedBooking = await Booking.findByIdAndUpdate(payment.bookingId, {
+      status: ENUM_BOOKING_STATUS.PAID,
+    });
   }
 };
 
 const StripeService = {
   onboarding,
-  createCheckout,
+  createCheckoutForBooking,
   createCheckoutForPromotion,
   webhookManager,
   savePayoutInfo,

@@ -36,6 +36,11 @@ const ENUM_BUSINESS_TYPE = {
   EVENT: "event",
 };
 
+const ENUM_BOOKING_STATUS = {
+  UNPAID: "unpaid",
+  PAID: "paid",
+};
+
 module.exports = {
   ENUM_USER_ROLE,
   ENUM_EVENT_STATUS,
@@ -44,4 +49,5 @@ module.exports = {
   ENUM_PAYMENT_STATUS,
   ENUM_PROMOTION_STATUS,
   ENUM_BUSINESS_TYPE,
+  ENUM_BOOKING_STATUS,
 };
