@@ -195,7 +195,7 @@ const webhookManager = async (req) => {
 
   switch (event.type) {
     case "checkout.session.completed":
-      updatePayment(event.data.object);
+      updatePaymentAndRelated(event.data.object);
       break;
     default:
       console.log(
@@ -237,7 +237,7 @@ const getBankAccountDetails = async (connectedAccountId) => {
 };
 
 // utility function
-const updatePayment = async (eventData) => {
+const updatePaymentAndRelated = async (eventData) => {
   const { id, payment_intent } = eventData;
 
   // const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
@@ -253,12 +253,14 @@ const updatePayment = async (eventData) => {
     { new: true }
   );
 
-  const promotion = await Promotion.findOneAndUpdate(
-    {
-      checkout_session_id: id,
-    },
-    { status: ENUM_PROMOTION_STATUS.PAID }
-  );
+  if (payment.isPromotion) {
+    const promotion = await Promotion.findOneAndUpdate(
+      {
+        checkout_session_id: id,
+      },
+      { status: ENUM_PROMOTION_STATUS.PAID }
+    );
+  }
 };
 
 const StripeService = {

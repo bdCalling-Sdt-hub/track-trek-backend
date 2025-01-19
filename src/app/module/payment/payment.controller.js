@@ -45,7 +45,7 @@ const createCheckoutForPromotion = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Payment initialized",
+    message: "Payment for promotion initialized",
     data: result,
   });
 });
