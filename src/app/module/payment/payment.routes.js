@@ -23,11 +23,11 @@ router
     uploadFile(),
     PaymentController.createCheckoutForPromotion
   )
-  //   .get(
-  //     "/get-all-payment",
-  //     auth(ENUM_USER_ROLE.ADMIN),
-  //     PaymentController.getAllPayment
-  //   )
+  .get(
+    "/get-all-payment",
+    auth(ENUM_USER_ROLE.ADMIN),
+    PaymentController.getAllPayment
+  )
   //   .post(
   //     "/checkout",
   //     auth(ENUM_USER_ROLE.USER),

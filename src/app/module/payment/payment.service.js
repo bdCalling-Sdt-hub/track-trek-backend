@@ -7,7 +7,24 @@ const PayoutInfo = require("./PayoutInfo");
 
 const getAllPayment = async (query) => {
   const paymentQuery = new QueryBuilder(
-    Payment.find({}).populate("user host car"),
+    Payment.find({}).populate([
+      {
+        path: "user",
+        select: "-_id name profile_image phoneNumber",
+      },
+      {
+        path: "host",
+        select: "-_id name profile_image phoneNumber",
+      },
+      {
+        path: "event",
+        select: "-_id eventName",
+      },
+      {
+        path: "track",
+        select: "-_id trackName",
+      },
+    ]),
     query
   )
     .search(["checkout_session_id", "payment_intent_id"])

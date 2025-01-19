@@ -45,15 +45,14 @@ const onboarding = async (userData) => {
 };
 
 const createCheckout = async (userData, payload) => {
+  validateFields(payload, ["businessId", "businessType", "amount"]);
+
   const { userId } = userData || {};
   const { businessId, bookingId, businessType, isPromotion, amount } =
     payload || {};
   let business = {};
   let booking = {};
   let session = {};
-  let businessData = {};
-
-  validateFields(payload, ["businessId", "businessType", "amount"]);
 
   const Model = businessType === ENUM_BUSINESS_TYPE.EVENT ? Event : Track;
 
@@ -206,7 +205,7 @@ const webhookManager = async (req) => {
   }
 };
 
-// save business payout info after successful onboarding
+// ** save business payout info after successful onboarding
 const savePayoutInfo = async (query) => {
   const { connectedAccountId, hostId } = query;
 
@@ -236,7 +235,7 @@ const getBankAccountDetails = async (connectedAccountId) => {
   return bankAccounts;
 };
 
-// utility function
+// ** utility function
 const updatePaymentAndRelated = async (eventData) => {
   const { id, payment_intent } = eventData;
 
