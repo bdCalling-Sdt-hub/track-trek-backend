@@ -20,6 +20,11 @@ const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
 
 const onboarding = async (userData) => {
+  const payoutInfo = await PayoutInfo.findOne({ host: userData.userId });
+
+  if (payoutInfo)
+    throw new ApiError(status.CONFLICT, "Already completed stripe onboarding");
+
   const accountData = {
     country: "GB",
     type: "express",
@@ -28,7 +33,6 @@ const onboarding = async (userData) => {
       transfers: { requested: true },
     },
   };
-
   const account = await stripe.accounts.create(accountData);
 
   const accountLinkData = {
@@ -37,7 +41,6 @@ const onboarding = async (userData) => {
     return_url: `http://${config.base_url}:${config.port}/payment/return?connectedAccountId=${account.id}&hostId=${userData.userId}`,
     type: "account_onboarding",
   };
-
   const accountLink = await stripe.accountLinks.create(accountLinkData);
 
   return {
@@ -58,11 +61,16 @@ const createCheckoutForBooking = async (userData, payload) => {
     .lean();
   if (!booking) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
-  // validate business
+  // validate payoutInfo and business
   const isEventBooking = Boolean(booking.event);
   const Model = isEventBooking ? Event : Track;
   const businessId = isEventBooking ? booking.event : booking.track;
-  const business = await Model.findById(businessId).select("_id").lean();
+  let [payoutInfo, business] = await Promise.all([
+    PayoutInfo.findOne({ host: booking.host }),
+    Model.findById(businessId).select("_id").lean(),
+  ]);
+
+  if (!payoutInfo) throw new ApiError(status.NOT_FOUND, "PayoutInfo not found");
   if (!business) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
   const sessionData = {
@@ -77,11 +85,20 @@ const createCheckoutForBooking = async (userData, payload) => {
           product_data: {
             name: "Amount",
           },
-          unit_amount: Number(amount) * 100,
+          unit_amount: Number(Math.floor(Number(amount) * 100).toFixed(2)),
         },
         quantity: 1,
       },
     ],
+    payment_intent_data: {
+      application_fee_amount: Number(
+        Math.floor(Number(amount) * 0.05 * 100).toFixed(2)
+      ),
+      transfer_data: {
+        destination: payoutInfo.stripe_account_id,
+      },
+      on_behalf_of: payoutInfo.stripe_account_id,
+    },
   };
 
   try {
