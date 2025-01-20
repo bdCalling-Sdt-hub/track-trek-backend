@@ -169,6 +169,7 @@ const activateAccount = async (payload) => {
 
 const loginAccount = async (payload) => {
   const { email, password } = payload;
+  validateFields(payload, ["email", "password"]);
 
   const auth = await Auth.isAuthExist(email);
 
