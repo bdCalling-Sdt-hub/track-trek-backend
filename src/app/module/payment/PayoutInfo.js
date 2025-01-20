@@ -6,7 +6,7 @@ const payoutInfoSchema = new Schema(
     host: {
       type: ObjectId,
       ref: "User",
-      // unique: true,
+      unique: true,
       required: true,
     },
     stripe_account_id: {

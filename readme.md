@@ -4,26 +4,7 @@
 
 2. remove track from booked
 
-# need fix app apk
-
-host part
-
-manage section
-
-2. manage page title change dynamic
-
 <!-- ----------------------------------------------------------------------------------------------- -->
-
-## to do
-
-1. payment on total overview
-2. Connection error message.
-3. PayoutInfo model: set the host account id to unique after development
-
-## needs test
-
-1. activate, deactivate track. search result based on that
-2. book a track slot and push the id on renters
 
 ## issues
 
@@ -34,15 +15,6 @@ manage section
 db_user=mytrackDB
 db_pass=E7iFCfwdLk1tBdSY
 MONGODB_ATLAS_STRING=mongodb+srv://mytrackDB:E7iFCfwdLk1tBdSY@darren.cnygj.mongodb.net/?retryWrites=true&w=majority&appName=Darren
-
-1. mismatch of address
-2. insufficient balance on card
-3. google account not verify
-
-# questions
-
-1. how much payment he wants to cut from a business. percentage or fixed?
-2. how much for the promotion
 
 # show client flow
 

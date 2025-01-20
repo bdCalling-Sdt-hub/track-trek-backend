@@ -6,7 +6,7 @@ const User = require("../user/user.model");
 const Auth = require("../auth/auth.model");
 const Payment = require("../payment/payment.model");
 const Category = require("../category/category.model");
-const { ENUM_USER_ROLE } = require("../../../util/enum");
+const { ENUM_USER_ROLE, ENUM_PAYMENT_STATUS } = require("../../../util/enum");
 const Booking = require("../booking/booking.model");
 const Track = require("../track/track.model");
 const Event = require("../event/event.model");
@@ -167,35 +167,33 @@ const totalOverview = async () => {
     totalHost,
     totalEvent,
     totalTrack,
-    totalEarningAgg,
+    totalTransactionAgg,
   ] = await Promise.all([
     Auth.countDocuments(),
     Auth.countDocuments({ role: ENUM_USER_ROLE.USER }),
     Auth.countDocuments({ role: ENUM_USER_ROLE.HOST }),
     Event.countDocuments(),
     Track.countDocuments(),
-    // Payment.aggregate([
-    //   {
-    //     $match: {
-    //       status: ENUM_PAYMENT_STATUS.SUCCEEDED,
-    //     },
-    //   },
-    //   {
-    //     $group: {
-    //       _id: null,
-    //       totalEarning: {
-    //         $sum: {
-    //           $subtract: ["$amount", "$refund_amount"],
-    //         },
-    //       },
-    //     },
-    //   },
-    // ]),
+    Payment.aggregate([
+      {
+        $match: {
+          status: ENUM_PAYMENT_STATUS.SUCCEEDED,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalEarning: {
+            $sum: "$amount",
+          },
+        },
+      },
+    ]),
   ]);
 
-  // const totalEarning = totalEarningAgg[0].totalEarning
-  //   ? totalEarningAgg[0].totalEarning
-  //   : 0;
+  const totalTransaction = totalTransactionAgg[0].totalEarning
+    ? totalTransactionAgg[0].totalEarning
+    : 0;
 
   return {
     totalAuth,
@@ -203,7 +201,8 @@ const totalOverview = async () => {
     totalHost,
     totalEvent,
     totalTrack,
-    // totalEarning,
+    totalTransaction,
+    totalEarning: Number((totalTransaction * 0.05).toFixed(2)),
   };
 };
 
