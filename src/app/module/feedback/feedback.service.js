@@ -80,9 +80,9 @@ const replyFeedback = async (payload) => {
   if (!feedback) throw new ApiError(status.NOT_FOUND, "Feedback not found");
 
   postNotification(
-    feedback.user,
     "Feedback Reply",
-    "Admin has replied to your feedback"
+    "Admin has replied to your feedback",
+    feedback.user
   );
 
   return feedback;
