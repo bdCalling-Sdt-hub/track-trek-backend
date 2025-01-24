@@ -17,7 +17,12 @@ const reauthPage = catchAsync(async (req, res) => {
 
 const returnPage = catchAsync(async (req, res) => {
   await StripeService.savePayoutInfo(req.query);
-  res.render("return.ejs");
+  // res.render("return.ejs");
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Onboarding successful",
+  });
 });
 
 const onboarding = catchAsync(async (req, res) => {
