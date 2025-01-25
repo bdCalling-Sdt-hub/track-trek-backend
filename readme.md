@@ -23,10 +23,7 @@ MONGODB_ATLAS_STRING=mongodb+srv://mytrackDB:E7iFCfwdLk1tBdSY@darren.cnygj.mongo
 3. after onboarding how client can manage if he needs any documents to be added by the vendors
 4. if he can send direct payment
 
-Hi Darren,
+# to do
 
-Yes you can add multiple bank accounts for multiple currencies.
-
-The business can also add multiple bank accounts.
-
-We have done it so that stripe fees are deducted from the business. For example, a user pays $100, admin gets 5%, business gets the rest after stripe deducts all the fees.
+1.  make payoutInfo unique for each host and once for each host
+2.  take stripe processing fee from user

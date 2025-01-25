@@ -52,7 +52,8 @@ const createCheckoutForBooking = async (userData, payload) => {
   validateFields(payload, ["bookingId", "amount"]);
 
   const { userId } = userData;
-  const { bookingId, amount } = payload;
+  const { bookingId, amount: prevAmount } = payload;
+  const amountInCents = Number(prevAmount) * 100;
   let session = {};
 
   // validate booking
@@ -73,6 +74,23 @@ const createCheckoutForBooking = async (userData, payload) => {
   if (!payoutInfo) throw new ApiError(status.NOT_FOUND, "PayoutInfo not found");
   if (!business) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
+  const platformFee = amountInCents * 0.05;
+  const payableAmount = amountInCents + platformFee;
+  const stripeFee = payableAmount * 0.029;
+  const halfOfStripeFee = stripeFee / 2;
+  const platformAmount = platformFee - halfOfStripeFee;
+  const hostAmount = amountInCents - halfOfStripeFee;
+
+  // return {
+  //   amount,
+  //   platformFee: Number(platformFee.toFixed(2)),
+  //   payableAmount: Number(payableAmount.toFixed(2)),
+  //   stripeFee: Number(stripeFee.toFixed(2)),
+  //   halfOfStripeFee: Number(halfOfStripeFee.toFixed(2)),
+  //   platformAmount: Number(platformAmount.toFixed(2)),
+  //   hostAmount: Number(hostAmount.toFixed(2)),
+  // };
+
   const sessionData = {
     payment_method_types: ["card"],
     mode: "payment",
@@ -84,16 +102,15 @@ const createCheckoutForBooking = async (userData, payload) => {
           currency: "gbp",
           product_data: {
             name: "Amount",
+            description: `Platform Fee: ${platformFee}`,
           },
-          unit_amount: Number(Math.floor(Number(amount) * 100).toFixed(2)),
+          unit_amount: Math.round(payableAmount),
         },
         quantity: 1,
       },
     ],
     payment_intent_data: {
-      application_fee_amount: Number(
-        Math.floor(Number(amount) * 0.05 * 100).toFixed(2)
-      ),
+      application_fee_amount: Math.round(platformAmount),
       transfer_data: {
         destination: payoutInfo.stripe_account_id,
       },
@@ -124,11 +141,11 @@ const createCheckoutForBooking = async (userData, payload) => {
     }),
     user: userId,
     host: booking.host,
-    amount,
+    amount: prevAmount,
     checkout_session_id,
   };
 
-  await Payment.create(paymentData);
+  // await Payment.create(paymentData);
 
   return url;
 };
