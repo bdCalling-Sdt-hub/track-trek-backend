@@ -22,8 +22,8 @@ const endPointSecret = config.stripe.end_point_secret;
 const onboarding = async (userData) => {
   const payoutInfo = await PayoutInfo.findOne({ host: userData.userId });
 
-  if (payoutInfo)
-    throw new ApiError(status.CONFLICT, "Already completed stripe onboarding");
+  // if (payoutInfo)
+  //   throw new ApiError(status.CONFLICT, "Already completed stripe onboarding");
 
   const accountData = {
     country: "GB",
@@ -246,7 +246,7 @@ const webhookManager = async (req) => {
 // ** save business payout info after successful onboarding
 const savePayoutInfo = async (query) => {
   const { connectedAccountId, hostId } = query;
-  console.log(query);
+
   const bankAccounts = await stripe.accounts.listExternalAccounts(
     connectedAccountId,
     { object: "bank_account" }
@@ -258,10 +258,8 @@ const savePayoutInfo = async (query) => {
     bank_account_no_last4: bankAccounts.data[0].last4,
     routing_no: bankAccounts.data[0].routing_number,
   };
-  console.log(payoutData);
 
   const payoutInfo = await PayoutInfo.create(payoutData);
-  console.log(payoutInfo);
 };
 
 const getBankAccountDetails = async (connectedAccountId) => {
