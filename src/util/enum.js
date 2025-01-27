@@ -41,6 +41,11 @@ const ENUM_BOOKING_STATUS = {
   PAID: "paid",
 };
 
+const ENUM_CURRENCY = {
+  GBP: "gbp",
+  AUD: "AUD",
+};
+
 module.exports = {
   ENUM_USER_ROLE,
   ENUM_EVENT_STATUS,
@@ -50,4 +55,5 @@ module.exports = {
   ENUM_PROMOTION_STATUS,
   ENUM_BUSINESS_TYPE,
   ENUM_BOOKING_STATUS,
+  ENUM_CURRENCY,
 };

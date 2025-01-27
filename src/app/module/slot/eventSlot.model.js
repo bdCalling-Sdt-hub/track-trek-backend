@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose");
+const { ENUM_CURRENCY } = require("../../../util/enum");
 const ObjectId = Schema.Types.ObjectId;
 
 const eventSlotSchema = new Schema(
@@ -19,6 +20,11 @@ const eventSlotSchema = new Schema(
     },
     price: {
       type: Number,
+      required: true,
+    },
+    currency: {
+      type: String,
+      enum: [ENUM_CURRENCY.GBP, ENUM_CURRENCY.AUD],
       required: true,
     },
     maxPeople: {
