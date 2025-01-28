@@ -738,7 +738,10 @@ const viewAllParticipants = async (user, query) => {
   const { trackSlotId, eventSlotId } = query;
   const queryObj = {};
 
-  if (trackSlotId) queryObj.trackSlot = trackSlotId;
+  if (trackSlotId) {
+    queryObj.trackSlot = trackSlotId;
+    queryObj.endDateTime = { $gte: new Date() };
+  }
   if (eventSlotId) queryObj.eventSlot = eventSlotId;
 
   return await Booking.find(queryObj).populate({
