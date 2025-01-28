@@ -91,7 +91,8 @@ const joinEvent = async (user, payload) => {
   const session = await mongoose.startSession();
 
   validateFields(payload, ["eventId", "price", "currency", "data"]);
-  currencyValidator(payload.currency);
+  console.log(payload.currency);
+  const currency = currencyValidator(payload.currency);
 
   const [event, slot, peopleCountsAgg] = await Promise.all([
     Event.findById(eventId).lean(),
@@ -146,7 +147,7 @@ const joinEvent = async (user, payload) => {
       startDateTime: event.startDateTime,
       endDateTime: event.endDateTime,
       price: Number((price / data.length).toFixed(2)),
-      currency: payload.currency,
+      currency,
       numOfPeople: 1,
       bookingFor: obj.bookingFor,
       moreInfo: obj.moreInfo || null,
@@ -190,14 +191,14 @@ const joinEvent = async (user, payload) => {
 
     return bookings;
   } catch (error) {
-    // if (session.transaction.state === "TRANSACTION_STARTED") {
-    //   await session.abortTransaction();
-    // }
-    await session.abortTransaction();
+    if (session.transaction.state === "TRANSACTION_STARTED") {
+      await session.abortTransaction();
+    }
+    // await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);
   } finally {
-    // await session.endSession();
-    session.endSession();
+    await session.endSession();
+    // session.endSession();
   }
 };
 
@@ -305,7 +306,7 @@ const createSlot = async (user, payload) => {
     );
   }
 
-  currencyValidator(payload.currency);
+  const currency = currencyValidator(payload.currency);
 
   if (trackId) {
     validateFields(payload, [
@@ -330,7 +331,7 @@ const createSlot = async (user, payload) => {
       startTime,
       endTime,
       price: payload.price,
-      currency: payload.currency,
+      currency,
       maxPeople: payload.maxPeople,
       description: payload.description,
     };
@@ -366,7 +367,7 @@ const createSlot = async (user, payload) => {
       slotNo: payload.slotNo,
       maxPeople: payload.maxPeople,
       price: payload.price,
-      currency: payload.currency,
+      currency,
       description: payload.description,
     };
 
@@ -466,7 +467,7 @@ const bookASlot = async (user, payload) => {
 
   validateFields(payload, ["slotId", "numOfPeople", "date", "currency"]);
   dateTimeValidator([date], []);
-  currencyValidator(payload.currency);
+  const currency = currencyValidator(payload.currency);
 
   const [slot, bookedSlots] = await Promise.all([
     TrackSlot.findById(slotId),
@@ -493,7 +494,7 @@ const bookASlot = async (user, payload) => {
     startDateTime: new Date(`${date} ${slot.startTime}`),
     endDateTime: new Date(`${date} ${slot.endTime}`),
     price: slot.price * Number(numOfPeople),
-    currency: payload.currency,
+    currency,
     numOfPeople,
   };
 
