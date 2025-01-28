@@ -47,7 +47,7 @@ const paymentSchema = new Schema(
     },
     currency: {
       type: String,
-      enum: [ENUM_CURRENCY.GBP, ENUM_CURRENCY.AUD],
+      enum: [ENUM_CURRENCY .GBP, ENUM_CURRENCY.AUD],
       required: true,
     },
     checkout_session_id: {
