@@ -8,6 +8,7 @@ const {
   ENUM_PAYMENT_STATUS,
   ENUM_PROMOTION_STATUS,
   ENUM_BOOKING_STATUS,
+  ENUM_CURRENCY,
 } = require("../../../util/enum");
 const Event = require("../event/event.model");
 const Track = require("../track/track.model");
@@ -15,6 +16,7 @@ const Booking = require("../booking/booking.model");
 const Payment = require("./payment.model");
 const Promotion = require("../../promotion/Promotion");
 const PayoutInfo = require("./PayoutInfo");
+const currencyValidator = require("../../../util/currencyValidator");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
@@ -49,16 +51,19 @@ const onboarding = async (userData) => {
 };
 
 const createCheckoutForBooking = async (userData, payload) => {
-  validateFields(payload, ["bookingId", "amount"]);
+  validateFields(payload, ["bookingId", "amount", "currency"]);
 
   const { userId } = userData;
   const { bookingId, amount: prevAmount } = payload;
   const amountInCents = Number(prevAmount) * 100;
   let session = {};
 
+  // validate currency
+  const currency = currencyValidator(payload.currency);
+
   // validate booking
   const booking = await Booking.findById(bookingId)
-    .select("user host event eventSlot track trackSlot")
+    .select("user host event eventSlot track trackSlot currency")
     .lean();
   if (!booking) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
@@ -99,10 +104,10 @@ const createCheckoutForBooking = async (userData, payload) => {
     line_items: [
       {
         price_data: {
-          currency: "gbp",
+          currency,
           product_data: {
             name: "Amount",
-            description: `Platform Fee: ${platformFee}`,
+            description: `Platform Fee: ${platformFee / 100} ${currency}`,
           },
           unit_amount: Math.round(payableAmount),
         },
@@ -142,10 +147,11 @@ const createCheckoutForBooking = async (userData, payload) => {
     user: userId,
     host: booking.host,
     amount: prevAmount,
+    currency,
     checkout_session_id,
   };
 
-  // await Payment.create(paymentData);
+  await Payment.create(paymentData);
 
   return url;
 };
@@ -158,7 +164,9 @@ const createCheckoutForPromotion = async (req) => {
   let session = {};
 
   validateFields(files, ["banner_image"]);
-  validateFields(payload, ["trackId"]);
+  validateFields(payload, ["trackId", "currency"]);
+
+  const currency = currencyValidator(payload.currency);
 
   const sessionData = {
     payment_method_types: ["card"],
@@ -168,7 +176,7 @@ const createCheckoutForPromotion = async (req) => {
     line_items: [
       {
         price_data: {
-          currency: "usd",
+          currency: currency,
           product_data: {
             name: "Promoting your track for",
           },
@@ -199,6 +207,7 @@ const createCheckoutForPromotion = async (req) => {
     businessType: ENUM_BUSINESS_TYPE.TRACK,
     isPromotion: true,
     amount: 10,
+    currency,
     checkout_session_id,
   };
   const promotionData = {
@@ -314,16 +323,3 @@ const StripeService = {
 };
 
 module.exports = StripeService;
-
-// const paymentIntent = await stripe.paymentIntents.create({
-//   amount: amountInCents,
-//   currency: "usd",
-//   automatic_payment_methods: {
-//     enabled: true,
-//   },
-//   application_fee_amount: amountInCents * 0.2,
-//   transfer_data: {
-//     destination: propertyCreator?.stripeAccountInfo?.accountId,
-//   },
-//   on_behalf_of: propertyCreator?.stripeAccountInfo?.accountId,
-// });

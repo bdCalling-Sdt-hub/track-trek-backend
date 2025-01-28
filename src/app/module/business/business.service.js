@@ -21,6 +21,7 @@ const {
 } = require("../../../util/enum");
 const Like = require("../like/like.model");
 const Promotion = require("../../promotion/Promotion");
+const currencyValidator = require("../../../util/currencyValidator");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
@@ -75,15 +76,22 @@ const createEvent = async (req) => {
 };
 
 const joinEvent = async (user, payload) => {
+  /**
+   * Handles user booking for an event and slot.
+   *
+   * - Validates the provided payload and checks event/slot availability.
+   * - Ensures the user is not exceeding the seat capacity for the event or slot.
+   * - Creates bookings and updates event/slot status atomically in a transaction.
+   * - Updates the slot to "BOOKED" or the event to "FULL" if capacities are reached.
+   */
   const { userId } = user;
   const { eventId, slotId, data, price } = payload;
   let bookings = [];
 
-  // console.log("=========================", data);
-
   const session = await mongoose.startSession();
 
-  validateFields(payload, ["eventId", "price", "data"]);
+  validateFields(payload, ["eventId", "price", "currency", "data"]);
+  currencyValidator(payload.currency);
 
   const [event, slot, peopleCountsAgg] = await Promise.all([
     Event.findById(eventId).lean(),
@@ -138,6 +146,7 @@ const joinEvent = async (user, payload) => {
       startDateTime: event.startDateTime,
       endDateTime: event.endDateTime,
       price: Number((price / data.length).toFixed(2)),
+      currency: payload.currency,
       numOfPeople: 1,
       bookingFor: obj.bookingFor,
       moreInfo: obj.moreInfo || null,
@@ -181,14 +190,12 @@ const joinEvent = async (user, payload) => {
 
     return bookings;
   } catch (error) {
-    // console.log("catch==============", session.transaction.state);
     // if (session.transaction.state === "TRANSACTION_STARTED") {
     //   await session.abortTransaction();
     // }
     await session.abortTransaction();
     throw new ApiError(status.BAD_REQUEST, error.message);
   } finally {
-    // console.log("finally=================", session.transaction.state);
     // await session.endSession();
     session.endSession();
   }
@@ -266,10 +273,12 @@ const updateTrack = async (user, payload) => {
     data.status = ENUM_TRACK_STATUS.ACTIVE;
   }
 
-  const updatedTrack = await Track.updateOne({ _id: trackId }, data).lean();
+  const updatedTrack = await Track.findByIdAndUpdate(trackId, data, {
+    new: true,
+    runValidators: true,
+  }).lean();
 
-  if (!updatedTrack.modifiedCount)
-    throw new ApiError(status.NOT_FOUND, "Track not found");
+  if (!updatedTrack) throw new ApiError(status.NOT_FOUND, "Track not found");
 
   postNotification(
     "Track Activated",
@@ -296,6 +305,8 @@ const createSlot = async (user, payload) => {
     );
   }
 
+  currencyValidator(payload.currency);
+
   if (trackId) {
     validateFields(payload, [
       "trackId",
@@ -304,6 +315,7 @@ const createSlot = async (user, payload) => {
       "startTime",
       "endTime",
       "price",
+      "currency",
       "maxPeople",
       "description",
     ]);
@@ -318,6 +330,7 @@ const createSlot = async (user, payload) => {
       startTime,
       endTime,
       price: payload.price,
+      currency: payload.currency,
       maxPeople: payload.maxPeople,
       description: payload.description,
     };
@@ -340,6 +353,7 @@ const createSlot = async (user, payload) => {
       "slotNo",
       "maxPeople",
       "price",
+      "currency",
       "description",
     ]);
 
@@ -352,6 +366,7 @@ const createSlot = async (user, payload) => {
       slotNo: payload.slotNo,
       maxPeople: payload.maxPeople,
       price: payload.price,
+      currency: payload.currency,
       description: payload.description,
     };
 
@@ -449,8 +464,9 @@ const bookASlot = async (user, payload) => {
   const { userId } = user;
   const { slotId, numOfPeople, date } = payload || {};
 
-  validateFields(payload, ["slotId", "numOfPeople", "date"]);
+  validateFields(payload, ["slotId", "numOfPeople", "date", "currency"]);
   dateTimeValidator([date], []);
+  currencyValidator(payload.currency);
 
   const [slot, bookedSlots] = await Promise.all([
     TrackSlot.findById(slotId),
@@ -477,6 +493,7 @@ const bookASlot = async (user, payload) => {
     startDateTime: new Date(`${date} ${slot.startTime}`),
     endDateTime: new Date(`${date} ${slot.endTime}`),
     price: slot.price * Number(numOfPeople),
+    currency: payload.currency,
     numOfPeople,
   };
 

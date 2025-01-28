@@ -27,3 +27,16 @@ MONGODB_ATLAS_STRING=mongodb+srv://mytrackDB:E7iFCfwdLk1tBdSY@darren.cnygj.mongo
 
 1.  make payoutInfo unique for each host and once for each host
 2.  take stripe processing fee from user
+
+# fixes
+
+add this field to the below endpoints.
+{
+"currency": "AUD", // or "gbp"
+}
+
+1. /create-slot // for both event and track
+2. /book-a-slot
+3. /join-event
+4. /checkout-booking
+5. /checkout-promotion
