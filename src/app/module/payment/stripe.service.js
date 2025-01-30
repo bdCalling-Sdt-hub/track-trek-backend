@@ -128,6 +128,7 @@ const createCheckoutForBooking = async (userData, payload) => {
   } catch (error) {
     console.log(error);
     errorLogger.error(error.message);
+    throw new ApiError(status.BAD_REQUEST, error.message);
   }
 
   const { id: checkout_session_id, url } = session || {};
