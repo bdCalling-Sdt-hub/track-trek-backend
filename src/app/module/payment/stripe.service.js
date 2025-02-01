@@ -256,7 +256,7 @@ const webhookManager = async (req) => {
 // ** save business payout info after successful onboarding
 const savePayoutInfo = async (query) => {
   const { connectedAccountId, hostId } = query;
-
+  console.log(query);
   const bankAccounts = await stripe.accounts.listExternalAccounts(
     connectedAccountId,
     { object: "bank_account" }

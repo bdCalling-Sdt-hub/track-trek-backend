@@ -16,3 +16,4 @@ MONGODB_ATLAS_STRING=mongodb+srv://mytrackDB:E7iFCfwdLk1tBdSY@darren.cnygj.mongo
 # to do
 
 1.  make payoutInfo unique for each host and once for each host
+2.  after successful booking send mail to user
