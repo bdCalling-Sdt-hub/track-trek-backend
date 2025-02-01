@@ -20,16 +20,24 @@ const sendEmail = async (options) => {
   //     pass: config.smtp.smtp_password,
   //   },
   // });
-  // console.log(config.smtp);
+
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false, // true for port 465, false for other ports
     auth: {
-      user: config.smtp.smtp_mail,
-      pass: config.smtp.smtp_password,
+      user: "thakursaad613@gmail.com",
+      pass: "xypyksxrfxkjzmyp",
     },
   });
+
+  // const transporter = nodemailer.createTransport({
+  //   service: "gmail",
+  //   auth: {
+  //     user: "mytracksetup@gmail.com",
+  //     pass: "jdrdjkqtpyhwmrea",
+  //   },
+  // });
 
   const { email, subject, html } = options;
 
