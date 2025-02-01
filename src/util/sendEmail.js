@@ -26,8 +26,8 @@ const sendEmail = async (options) => {
     port: 587,
     // secure: false, // true for port 465, false for other ports
     auth: {
-      user: "tanzibamouri28@gmail.com",
-      pass: "bmwr psya xftr hvmw",
+      user: "mytracksetup@gmail.com",
+      pass: "umrr hmgv xpes kbdk",
     },
   });
 
