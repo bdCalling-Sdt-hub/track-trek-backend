@@ -13,6 +13,7 @@ const sendActivationEmail = async (email, data) => {
       html: signUpEmailTemp(data),
     });
   } catch (error) {
+    console.log(error);
     throw new ApiError(status.INTERNAL_SERVER_ERROR, "Email was not sent");
   }
 };
@@ -25,6 +26,7 @@ const sendOtpResendEmail = async (email, data) => {
       html: otpResendTemp(data),
     });
   } catch (error) {
+    console.log(error);
     throw new ApiError(status.INTERNAL_SERVER_ERROR, "Email was not sent");
   }
 };
@@ -37,6 +39,7 @@ const sendResetPasswordEmail = async (email, data) => {
       html: resetPassEmailTemp(data),
     });
   } catch (error) {
+    console.log(error);
     throw new ApiError(status.INTERNAL_SERVER_ERROR, error.message);
   }
 };

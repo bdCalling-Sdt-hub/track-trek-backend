@@ -66,10 +66,10 @@ const otpResendTemp = (data) =>
                     data.expiresIn ? data.expiresIn : data.activationCodeExpire
                   } minutes</strong>.</p>
                   <p>If you did not request this code, please disregard this message. For assistance, reach out to us.</p>
-                  <p>Thank you,<br>Your TrackTrek Team</p>
+                  <p>Thank you,<br>Your My Tracks Team</p>
               </div>
               <div class="footer">
-                  <p>&copy; TrackTrek - All Rights Reserved.</p>
+                  <p>&copy; My Tracks - All Rights Reserved.</p>
                   <p>For support, contact us at <a href="mailto:support@company.com">support@company.com</a></p>
               </div>
           </body>
