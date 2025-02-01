@@ -10,42 +10,17 @@ const formattedDate = currentDate.toLocaleDateString("en-US", {
 });
 
 const sendEmail = async (options) => {
-  // const transporter = nodemailer.createTransport({
-  //   host: config.smtp.smtp_host,
-  //   service: config.smtp.smtp_service,
-  //   port: parseInt(config.smtp.smtp_port),
-  // secure: false, // true for port 465, false for other ports
-  //   auth: {
-  //     user: config.smtp.smtp_mail,
-  //     pass: config.smtp.smtp_password,
-  //   },
-  // });
-
-  // const transporter = nodemailer.createTransport({
-  //   host: config.smtp.smtp_host,
-  //   port: parseInt(config.smtp.smtp_port),
-  //   auth: {
-  //     user: config.smtp.smtp_mail,
-  //     pass: config.smtp.smtp_password,
-  //   },
-  // });
   console.log(config.smtp);
   const transporter = nodemailer.createTransport({
     host: config.smtp.smtp_host,
+    service: config.smtp.smtp_service,
     port: parseInt(config.smtp.smtp_port),
+    secure: false, // true for port 465, false for other ports
     auth: {
       user: config.smtp.smtp_mail,
-      pass: "umrr hmgv xpes kbdk",
+      pass: config.smtp.smtp_password,
     },
   });
-
-  // const transporter = nodemailer.createTransport({
-  //   service: "gmail",
-  //   auth: {
-  //     user: "mytracksetup@gmail.com",
-  //     pass: "jdrdjkqtpyhwmrea",
-  //   },
-  // });
 
   const { email, subject, html } = options;
 
