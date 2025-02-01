@@ -790,6 +790,7 @@ const rentersOnDate = async (user, query) => {
   endOfDay.setDate(endOfDay.getDate() + 1);
 
   const renters = await Booking.find({
+    host: user.userId,
     startDateTime: {
       $gte: startOfDay,
       $lte: endOfDay,

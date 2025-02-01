@@ -51,6 +51,7 @@ const createSlot = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
+    // success: false,
     message: "Slot created",
     data: result,
   });
