@@ -10,11 +10,21 @@ const formattedDate = currentDate.toLocaleDateString("en-US", {
 });
 
 const sendEmail = async (options) => {
+  // const transporter = nodemailer.createTransport({
+  //   host: config.smtp.smtp_host,
+  //   service: config.smtp.smtp_service,
+  //   port: parseInt(config.smtp.smtp_port),
+  //   // secure: true,
+  //   auth: {
+  //     user: config.smtp.smtp_mail,
+  //     pass: config.smtp.smtp_password,
+  //   },
+  // });
+  // console.log(config.smtp);
   const transporter = nodemailer.createTransport({
-    host: config.smtp.smtp_host,
-    // service: config.smtp.smtp_service,
-    // port: parseInt(config.smtp.smtp_port),
-    // secure: true,
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // true for port 465, false for other ports
     auth: {
       user: config.smtp.smtp_mail,
       pass: config.smtp.smtp_password,
