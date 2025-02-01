@@ -22,12 +22,12 @@ const sendEmail = async (options) => {
   // });
 
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
+    host: config.smtp.smtp_host,
+    port: parseInt(config.smtp.smtp_port),
     // secure: false, // true for port 465, false for other ports
     auth: {
-      user: "mytracksetup@gmail.com",
-      pass: "umrr hmgv xpes kbdk",
+      user: config.smtp.smtp_mail,
+      pass: config.smtp.smtp_password,
     },
   });
 
