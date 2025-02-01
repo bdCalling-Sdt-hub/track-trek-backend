@@ -29,12 +29,12 @@ const sendEmail = async (options) => {
   //     pass: config.smtp.smtp_password,
   //   },
   // });
-
+  console.log(config.smtp);
   const transporter = nodemailer.createTransport({
     host: config.smtp.smtp_host,
     port: parseInt(config.smtp.smtp_port),
     auth: {
-      user: "mytracksetup@gmail.com",
+      user: config.smtp.smtp_mail,
       pass: "umrr hmgv xpes kbdk",
     },
   });
