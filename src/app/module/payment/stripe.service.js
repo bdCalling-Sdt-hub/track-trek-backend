@@ -25,8 +25,8 @@ const endPointSecret = config.stripe.end_point_secret;
 const onboarding = async (userData) => {
   const payoutInfo = await PayoutInfo.findOne({ host: userData.userId });
 
-  // if (payoutInfo)
-  //   throw new ApiError(status.CONFLICT, "Already completed stripe onboarding");
+  if (payoutInfo)
+    throw new ApiError(status.CONFLICT, "Already completed stripe onboarding");
 
   const accountData = {
     country: "GB",
