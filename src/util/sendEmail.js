@@ -10,7 +10,6 @@ const formattedDate = currentDate.toLocaleDateString("en-US", {
 });
 
 const sendEmail = async (options) => {
-  console.log(config.smtp);
   const transporter = nodemailer.createTransport({
     host: config.smtp.smtp_host,
     service: config.smtp.smtp_service,

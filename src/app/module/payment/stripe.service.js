@@ -15,6 +15,7 @@ const Booking = require("../booking/booking.model");
 const Payment = require("./payment.model");
 const Promotion = require("../../promotion/Promotion");
 const PayoutInfo = require("./PayoutInfo");
+const EmailHelpers = require("../../../util/emailHelpers");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
@@ -231,7 +232,7 @@ const webhookManager = async (req) => {
 
   switch (event.type) {
     case "checkout.session.completed":
-      updatePaymentAndRelated(event.data.object);
+      updatePaymentAndRelatedAndSendMail(event.data.object);
       break;
     default:
       console.log(
@@ -273,41 +274,81 @@ const getBankAccountDetails = async (connectedAccountId) => {
 };
 
 // ** utility function
-const updatePaymentAndRelated = async (eventData) => {
-  const { id, payment_intent } = eventData;
-  // const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
+const updatePaymentAndRelatedAndSendMail = async (eventData) => {
+  try {
+    const { id, payment_intent } = eventData;
+    // const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
 
-  const payment = await Payment.findOneAndUpdate(
-    { checkout_session_id: id },
-    {
-      $set: {
-        payment_intent_id: payment_intent,
-        status: ENUM_PAYMENT_STATUS.SUCCEEDED,
-      },
-    },
-    { new: true }
-  );
-
-  // Update booking or promotion details based on the payment type by verifying the payment data stored during the checkout session.
-  if (payment.isPromotion) {
-    const promotion = await Promotion.findOneAndUpdate(
+    const payment = await Payment.findOneAndUpdate(
+      { checkout_session_id: id },
       {
-        checkout_session_id: id,
+        $set: {
+          payment_intent_id: payment_intent,
+          status: ENUM_PAYMENT_STATUS.SUCCEEDED,
+        },
       },
-      { status: ENUM_PROMOTION_STATUS.PAID }
+      { new: true }
     );
-  } else {
-    const updatedBooking = await Booking.findByIdAndUpdate(payment.bookingId, {
-      status: ENUM_BOOKING_STATUS.PAID,
-    });
-    // email can be added here
-    const emailData = {
-      eventName: "",
-      slotName: "",
-      price: "",
-      currency: "",
-      numOfPeople: "",
-    };
+
+    // Update booking or promotion details based on the payment type by verifying the payment data stored during the checkout session.
+    if (payment.isPromotion) {
+      const promotion = await Promotion.findOneAndUpdate(
+        {
+          checkout_session_id: id,
+        },
+        { status: ENUM_PROMOTION_STATUS.PAID }
+      );
+    } else {
+      const updatedBooking = await Booking.findByIdAndUpdate(
+        payment.bookingId,
+        {
+          status: ENUM_BOOKING_STATUS.PAID,
+        },
+        { new: true, runValidators: true }
+      ).populate([
+        {
+          path: "user",
+          select: "name email",
+        },
+        {
+          path: "event",
+          select: "eventName",
+        },
+        {
+          path: "eventSlot",
+          select: "slotNo",
+        },
+        {
+          path: "track",
+          select: "trackName",
+        },
+        {
+          path: "trackSlot",
+          select: "slotNo",
+        },
+      ]);
+
+      const emailData = {
+        ...(updatedBooking.event && {
+          eventName: updatedBooking.event.eventName,
+          slotNo: updatedBooking.eventSlot.slotNo,
+        }),
+        ...(updatedBooking.track && {
+          trackName: updatedBooking.track.trackName,
+          slotNo: updatedBooking.trackSlot.slotNo,
+        }),
+        name: updatedBooking.user.name,
+        price: updatedBooking.price,
+        currency: updatedBooking.currency,
+        numOfPeople: updatedBooking.numOfPeople,
+        payment_intent_id: payment_intent,
+      };
+
+      EmailHelpers.sendBookingEmail(updatedBooking.user.email, emailData);
+    }
+  } catch (error) {
+    console.log(error);
+    errorLogger.error(error.message);
   }
 };
 
