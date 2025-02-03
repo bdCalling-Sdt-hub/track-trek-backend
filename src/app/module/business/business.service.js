@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const moment = require("moment");
 const { default: status } = require("http-status");
+
 const ApiError = require("../../../error/ApiError");
 const Event = require("../event/event.model");
 const Track = require("../track/track.model");
@@ -21,6 +22,7 @@ const {
 } = require("../../../util/enum");
 const Like = require("../like/like.model");
 const Promotion = require("../../promotion/Promotion");
+const catchAsync = require("../../../shared/catchAsync");
 
 const createEvent = async (req) => {
   const { user, body, files } = req;
