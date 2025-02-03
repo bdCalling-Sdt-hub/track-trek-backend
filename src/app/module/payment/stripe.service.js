@@ -8,7 +8,6 @@ const {
   ENUM_PAYMENT_STATUS,
   ENUM_PROMOTION_STATUS,
   ENUM_BOOKING_STATUS,
-  ENUM_CURRENCY,
 } = require("../../../util/enum");
 const Event = require("../event/event.model");
 const Track = require("../track/track.model");
@@ -16,7 +15,6 @@ const Booking = require("../booking/booking.model");
 const Payment = require("./payment.model");
 const Promotion = require("../../promotion/Promotion");
 const PayoutInfo = require("./PayoutInfo");
-const currencyValidator = require("../../../util/currencyValidator");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
@@ -58,8 +56,7 @@ const createCheckoutForBooking = async (userData, payload) => {
   const amountInCents = Number(prevAmount) * 100;
   let session = {};
 
-  // validate currency
-  const currency = currencyValidator(payload.currency);
+  // const currency = currencyValidator(payload.currency);
 
   // validate booking
   const booking = await Booking.findById(bookingId)
@@ -85,17 +82,7 @@ const createCheckoutForBooking = async (userData, payload) => {
   const halfOfStripeFee = stripeFee / 2;
   const platformAmount = platformFee - halfOfStripeFee;
   const hostAmount = amountInCents - halfOfStripeFee;
-
-  // return {
-  //   amount,
-  //   platformFee: Number(platformFee.toFixed(2)),
-  //   payableAmount: Number(payableAmount.toFixed(2)),
-  //   stripeFee: Number(stripeFee.toFixed(2)),
-  //   halfOfStripeFee: Number(halfOfStripeFee.toFixed(2)),
-  //   platformAmount: Number(platformAmount.toFixed(2)),
-  //   hostAmount: Number(hostAmount.toFixed(2)),
-  // };
-
+  // return payload;
   const sessionData = {
     payment_method_types: ["card"],
     mode: "payment",
@@ -104,10 +91,12 @@ const createCheckoutForBooking = async (userData, payload) => {
     line_items: [
       {
         price_data: {
-          currency,
+          currency: payload.currency,
           product_data: {
             name: "Amount",
-            description: `Platform Fee: ${platformFee / 100} ${currency}`,
+            description: `Platform Fee: ${platformFee / 100} ${
+              payload.currency
+            }`,
           },
           unit_amount: Math.round(payableAmount),
         },
@@ -148,7 +137,7 @@ const createCheckoutForBooking = async (userData, payload) => {
     user: userId,
     host: booking.host,
     amount: prevAmount,
-    currency,
+    currency: payload.currency,
     checkout_session_id,
   };
 
@@ -167,7 +156,7 @@ const createCheckoutForPromotion = async (req) => {
   validateFields(files, ["banner_image"]);
   validateFields(payload, ["trackId", "currency"]);
 
-  const currency = currencyValidator(payload.currency);
+  // const currency = currencyValidator(payload.currency);
 
   const sessionData = {
     payment_method_types: ["card"],
@@ -177,7 +166,7 @@ const createCheckoutForPromotion = async (req) => {
     line_items: [
       {
         price_data: {
-          currency: currency,
+          currency: payload.currency,
           product_data: {
             name: "Promoting your track for",
           },
@@ -208,7 +197,7 @@ const createCheckoutForPromotion = async (req) => {
     businessType: ENUM_BUSINESS_TYPE.TRACK,
     isPromotion: true,
     amount: 10,
-    currency,
+    currency: payload.currency,
     checkout_session_id,
   };
   const promotionData = {
@@ -256,7 +245,7 @@ const webhookManager = async (req) => {
 // ** save business payout info after successful onboarding
 const savePayoutInfo = async (query) => {
   const { connectedAccountId, hostId } = query;
-  console.log(query);
+
   const bankAccounts = await stripe.accounts.listExternalAccounts(
     connectedAccountId,
     { object: "bank_account" }
@@ -311,6 +300,14 @@ const updatePaymentAndRelated = async (eventData) => {
     const updatedBooking = await Booking.findByIdAndUpdate(payment.bookingId, {
       status: ENUM_BOOKING_STATUS.PAID,
     });
+    // email can be added here
+    const emailData = {
+      eventName: "",
+      slotName: "",
+      price: "",
+      currency: "",
+      numOfPeople: "",
+    };
   }
 };
 

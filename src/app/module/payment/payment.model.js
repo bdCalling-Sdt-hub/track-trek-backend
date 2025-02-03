@@ -1,5 +1,4 @@
 const { Schema, model } = require("mongoose");
-const { ENUM_CURRENCY } = require("../../../util/enum");
 const ObjectId = Schema.Types.ObjectId;
 
 const paymentSchema = new Schema(
@@ -47,7 +46,6 @@ const paymentSchema = new Schema(
     },
     currency: {
       type: String,
-      enum: [ENUM_CURRENCY .GBP, ENUM_CURRENCY.AUD],
       required: true,
     },
     checkout_session_id: {
