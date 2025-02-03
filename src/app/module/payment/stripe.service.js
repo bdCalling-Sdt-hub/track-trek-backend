@@ -1,4 +1,5 @@
 const { default: status } = require("http-status");
+const cron = require("node-cron");
 const config = require("../../../config");
 const ApiError = require("../../../error/ApiError");
 const { errorLogger } = require("../../../shared/logger");
@@ -16,6 +17,7 @@ const Payment = require("./payment.model");
 const Promotion = require("../../promotion/Promotion");
 const PayoutInfo = require("./PayoutInfo");
 const EmailHelpers = require("../../../util/emailHelpers");
+const catchAsync = require("../../../shared/catchAsync");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
@@ -351,6 +353,32 @@ const updatePaymentAndRelatedAndSendMail = async (eventData) => {
     errorLogger.error(error.message);
   }
 };
+
+// Delete unpaid payments and bookings every day at midnight
+cron.schedule(
+  "0 0 * * *",
+  catchAsync(async () => {
+    const [bookingDeletionResult, paymentDeletionResult] = await Promise.all([
+      Booking.deleteMany({
+        status: ENUM_BOOKING_STATUS.UNPAID,
+      }),
+      Payment.deleteMany({
+        status: ENUM_PAYMENT_STATUS.UNPAID,
+      }),
+    ]);
+
+    if (bookingDeletionResult.deletedCount > 0) {
+      logger.info(
+        `Deleted ${bookingDeletionResult.deletedCount} unpaid bookings`
+      );
+    }
+    if (paymentDeletionResult.deletedCount > 0) {
+      logger.info(
+        `Deleted ${paymentDeletionResult.deletedCount} unpaid payments`
+      );
+    }
+  })
+);
 
 const StripeService = {
   onboarding,

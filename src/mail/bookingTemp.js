@@ -76,7 +76,7 @@ const bookingTemp = (data) =>
               </tr>
               <tr>
                 <th>Price</th>
-                <td>${data.price} ${data.currency}</td>
+                <td>${data.price} ${data.currency.trim().toUpperCase()}</td>
               </tr>
               <tr>
                 <th>Number of People</th>
