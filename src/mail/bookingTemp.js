@@ -31,7 +31,7 @@ const bookingTemp = (data) =>
               margin-bottom: 20px;
             }
             table {
-              width: 100%;
+              width: fit-content;
               border-collapse: collapse;
               margin: 20px 0;
             }
@@ -67,13 +67,11 @@ const bookingTemp = (data) =>
             
             <table>
               <tr>
-                <th>${
-                  data.eventName ? data.eventName : data.trackName
-                } Name</th>
+                <th>${data.eventName ? "Event" : "Track"} Name</th>
                 <td>${data.eventName ? data.eventName : data.trackName}</td>
               </tr>
               <tr>
-                <th>Slot Number</th>
+                <th>Slot Name</th>
                 <td>${data.slotNo}</td>
               </tr>
               <tr>
@@ -83,6 +81,10 @@ const bookingTemp = (data) =>
               <tr>
                 <th>Number of People</th>
                 <td>${data.numOfPeople}</td>
+              </tr>
+              <tr>
+                <th>Transaction ID</th>
+                <td>${data.payment_intent_id}</td>
               </tr>
             </table>
     
