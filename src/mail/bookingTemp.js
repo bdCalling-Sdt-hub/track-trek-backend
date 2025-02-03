@@ -61,67 +61,36 @@ const bookingTemp = (data) =>
         </head>
         <body>
           <div class="container">
-            <h1>Thank you for booking</h1>
+            <h1>Booking Confirmation</h1>
             <p>Hello, ${data.name},</p>
-            <p>We are excited to have you join the team as a new employee. Below are your key details:</p>
+            <p>Thank you for booking with <strong>My Tracks</strong>. Here are your booking details:</p>
             
             <table>
               <tr>
-                <th>Employee ID</th>
-                <td>${data.employeeId}</td>
+                <th>${
+                  data.eventName ? data.eventName : data.trackName
+                } Name</th>
+                <td>${data.eventName ? data.eventName : data.trackName}</td>
               </tr>
               <tr>
-                <th>Email</th>
-                <td>${data.email}</td>
+                <th>Slot Number</th>
+                <td>${data.slotNo}</td>
               </tr>
               <tr>
-                <th>Password</th>
-                <td>${data.password}</td>
+                <th>Price</th>
+                <td>${data.price} ${data.currency}</td>
               </tr>
               <tr>
-                <th>Phone No</th>
-                <td>${data.phoneNumber}</td>
-              </tr>
-              <tr>
-                <th>Address</th>
-                <td>${data.address}</td>
-              </tr>
-              <tr>
-                <th>Designation</th>
-                <td>${data.designation}</td>
-              </tr>
-              <tr>
-                <th>Job Type</th>
-                <td>${data.jobType}</td>
-              </tr>
-              <tr>
-                <th>CPR</th>
-                <td>${data.CPR}</td>
-              </tr>
-              <tr>
-                <th>Passport</th>
-                <td>${data.passport}</td>
-              </tr>
-              <tr>
-                <th>Driving License</th>
-                <td>${data.drivingLicense}</td>
-              </tr>
-              <tr>
-                <th>Working Days</th>
-                <td>${data.workDays}</td>
-              </tr>
-              <tr>
-                <th>Off Day</th>
-                <td>${data.offDay}</td>
+                <th>Number of People</th>
+                <td>${data.numOfPeople}</td>
               </tr>
             </table>
     
-            <p>Your employer has added you to manage household tasks like cleaning, grocery shopping, and cooking. Please log in to your account to get started. If you have any questions, feel free to reach out to your employer or contact us at <a href="mailto:thakursaad613@gmail.com">thakursaad613@gmail.com</a>.</p>
-            <p>We’re looking forward to working with you!</p>
-            <p>Best regards,<br>The Tidy Bity Team</p>
+            <p>We look forward to serving you. If you have any questions, feel free to contact us at <a href="mailto:mytracksetup@gmail.com">mytracksetup@gmail.com</a>.</p>
+            <p>Best regards,<br>The My Tracks Team</p>
           </div>
           <div class="footer">
-            <p>&copy; Tidy Bity - All Rights Reserved.</p>
+            <p>&copy; My Tracks - All Rights Reserved.</p>
             <p><a href="https://yourwebsite.com/privacy">Privacy Policy</a> | <a href="https://yourwebsite.com/contact">Contact Support</a></p>
           </div>
         </body>
