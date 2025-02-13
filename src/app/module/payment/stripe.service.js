@@ -18,6 +18,7 @@ const Promotion = require("../../promotion/Promotion");
 const PayoutInfo = require("./PayoutInfo");
 const EmailHelpers = require("../../../util/emailHelpers");
 const catchAsync = require("../../../shared/catchAsync");
+const { response } = require("express");
 
 const stripe = require("stripe")(config.stripe.secret_key);
 const endPointSecret = config.stripe.end_point_secret;
