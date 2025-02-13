@@ -8,6 +8,10 @@ const corsOptions = require("./helper/corsOptions");
 const routes = require("./app/routes");
 const webhookRoutes = require("./app/module/payment/webhook.routes");
 
+const stripe = require("stripe")(config.stripe.secret_key);
+const endPointSecret = config.stripe.end_point_secret;
+
+
 const app = express();
 
 app.set("views", path.join(__dirname, "views"));
