@@ -8,8 +8,8 @@ const corsOptions = require("./helper/corsOptions");
 const routes = require("./app/routes");
 const webhookRoutes = require("./app/module/payment/webhook.routes");
 
-const stripe = require("stripe")(config.stripe.secret_key);
-const endPointSecret = config.stripe.end_point_secret;
+const stripe = require("stripe")("sk_test_51L0k3pBXb2oMSwoOOFy5628JpwJdNvtEhCP9hO3K2TqlVjPcH7iv15BhLwIiFjxi4XiUCHApCK2U7Gts9KnVpy1K00hxRiASsW");
+const endPointSecret = "whsec_41c71273d0be8064482c15a2abf32a7e71fdfe3a26822a56670657af08b96ec8";
 
 
 const app = express();
