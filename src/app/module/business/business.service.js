@@ -137,8 +137,8 @@ const joinEvent = async (user, payload) => {
   const bookingData = data.map((obj) => {
     validateFields(obj, ["bookingFor", "moreInfo"]);
 
-    if (!obj.moreInfo.length)
-      throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
+    // if (!obj.moreInfo.length)
+    //   throw new ApiError(status.BAD_REQUEST, "moreInfo can't be empty");
 
     return {
       user: userId,
@@ -155,52 +155,38 @@ const joinEvent = async (user, payload) => {
     };
   });
 
-  try {
-    await session.withTransaction(async () => {
-      bookings = await Booking.create(bookingData, { session });
-      const bookingIds = bookings.map((booking) => booking._id);
+  bookings = await Booking.create(bookingData);
 
-      const eventUpdateOperations = {
-        $push: { bookings: { $each: bookingIds } },
-      };
-      const slotUpdateOperations = {
-        $inc: { currentPeople: bookingData.length },
-      };
+  const bookingIds = bookings.map((booking) => booking._id);
 
-      if (totalPeopleOnSlot === slot.maxPeople)
-        slotUpdateOperations.$set = { status: ENUM_SLOT_STATUS.BOOKED };
-      if (totalMaxPeople === totalCurrentPeople)
-        eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
+  const eventUpdateOperations = {
+    $push: { bookings: { $each: bookingIds } },
+  };
+  const slotUpdateOperations = {
+    $inc: { currentPeople: bookingData.length },
+  };
 
-      await Promise.all([
-        Event.updateOne(
-          {
-            _id: eventId,
-          },
-          eventUpdateOperations
-        ).session(session),
-        EventSlot.updateOne(
-          {
-            _id: slotId,
-          },
-          slotUpdateOperations
-        ).session(session),
-      ]);
-    });
+  if (totalPeopleOnSlot === slot.maxPeople)
+    slotUpdateOperations.$set = { status: ENUM_SLOT_STATUS.BOOKED };
+  if (totalMaxPeople === totalCurrentPeople)
+    eventUpdateOperations.$set = { status: ENUM_EVENT_STATUS.FULL };
 
-    await session.commitTransaction();
+  await Promise.all([
+    Event.updateOne(
+      {
+        _id: eventId,
+      },
+      eventUpdateOperations
+    ),
+    EventSlot.updateOne(
+      {
+        _id: slotId,
+      },
+      slotUpdateOperations
+    ),
+  ]);
 
-    return bookings;
-  } catch (error) {
-    if (session.transaction.state === "TRANSACTION_STARTED") {
-      await session.abortTransaction();
-    }
-    // await session.abortTransaction();
-    throw new ApiError(status.BAD_REQUEST, error.message);
-  } finally {
-    await session.endSession();
-    // session.endSession();
-  }
+  return bookings;
 };
 
 const createTrack = async (req) => {
@@ -732,7 +718,10 @@ const getBookings = async (user, query) => {
   if (data === "event") queryObj.event = { $exists: true };
   else queryObj.track = { $exists: true };
 
-  const bookings = await Booking.find(queryObj).populate(populateObj).lean();
+  const bookings = await Booking.find(queryObj)
+    .populate(populateObj)
+    .sort("-createdAt")
+    .lean();
   return bookings;
 };
 
@@ -809,9 +798,9 @@ const getAllNotifications = async (user) => {
 };
 
 const getPromotedTracks = async (query) => {
-  return Promotion.find({ status: ENUM_PROMOTION_STATUS.PAID }).select(
-    "-_id track banner_image"
-  );
+  return Promotion.find({ status: ENUM_PROMOTION_STATUS.PAID })
+    .select("-_id track banner_image")
+    .sort("-createdAt");
 };
 
 // utility functions =========================

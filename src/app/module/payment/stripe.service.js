@@ -52,10 +52,46 @@ const onboarding = async (userData) => {
 };
 
 const createCheckoutForBooking = async (userData, payload) => {
-  validateFields(payload, ["bookingId", "amount", "currency"]);
+  /**
+   * Creates a Stripe checkout session for booking payments.
+   *
+   * This function is responsible for processing payments when a user books an event or track slot.
+   * It validates the provided booking details, calculates the necessary fees, and creates a Stripe
+   * checkout session with the appropriate payment details.
+   *
+   * Functionality:
+   * - Validates required fields in the payload.
+   * - Ensures only one of `bookingId` or `bookingIds` is provided.
+   * - Retrieves the booking details and verifies its existence.
+   * - Fetches payout information and validates the associated business (event or track).
+   * - Calculates platform fees, Stripe fees, and the final payable amount.
+   * - Creates a Stripe checkout session with relevant payment details and payout information.
+   * - Saves payment details in the database.
+   * - Returns the Stripe checkout session URL for the frontend to redirect the user for payment.
+   *
+   * Usage:
+   * - This function is triggered when a user attempts to pay for a booking.
+   * - It ensures the correct amount is charged, platform fees are deducted, and the host receives
+   *   their share of the payment.
+   * - Provides a secure and structured payment flow via Stripe.
+   */
+
+  validateFields(payload, ["amount", "currency"]);
 
   const { userId } = userData;
-  const { bookingId, amount: prevAmount } = payload;
+  const {
+    bookingId: singleBookingId,
+    bookingIds,
+    amount: prevAmount,
+  } = payload || {};
+
+  if (!singleBookingId && !bookingIds)
+    throw new ApiError(status.BAD_REQUEST, "Missing bookingId or bookingIds");
+  if (singleBookingId && bookingIds)
+    throw new ApiError(status.BAD_REQUEST, "Only one: bookingId or bookingIds");
+
+  const bookingId = singleBookingId ? singleBookingId : bookingIds[0];
+
   const amountInCents = Number(prevAmount) * 100;
   let session = {};
 
@@ -65,6 +101,7 @@ const createCheckoutForBooking = async (userData, payload) => {
   const booking = await Booking.findById(bookingId)
     .select("user host event eventSlot track trackSlot currency")
     .lean();
+
   if (!booking) throw new ApiError(status.NOT_FOUND, "Booking not found");
 
   // validate payoutInfo and business
@@ -85,7 +122,7 @@ const createCheckoutForBooking = async (userData, payload) => {
   const halfOfStripeFee = stripeFee / 2;
   const platformAmount = platformFee - halfOfStripeFee;
   const hostAmount = amountInCents - halfOfStripeFee;
-  // return payload;
+
   const sessionData = {
     payment_method_types: ["card"],
     mode: "payment",
@@ -126,13 +163,13 @@ const createCheckoutForBooking = async (userData, payload) => {
   const { id: checkout_session_id, url } = session || {};
 
   const paymentData = {
-    bookingId: booking._id,
     ...(isEventBooking && {
       event: businessId,
       eventSlot: booking.eventSlot,
       businessType: ENUM_BUSINESS_TYPE.EVENT,
     }),
     ...(!isEventBooking && {
+      bookingId: singleBookingId,
       track: businessId,
       trackSlot: booking.trackSlot,
       businessType: ENUM_BUSINESS_TYPE.TRACK,
@@ -144,7 +181,12 @@ const createCheckoutForBooking = async (userData, payload) => {
     checkout_session_id,
   };
 
-  await Payment.create(paymentData);
+  if (isEventBooking && payload.bookingId)
+    paymentData.bookingId = payload.bookingId;
+  if (isEventBooking && payload.bookingIds)
+    paymentData.bookingIds = payload.bookingIds;
+
+  const payment = await Payment.create(paymentData);
 
   return url;
 };
@@ -276,9 +318,9 @@ const getBankAccountDetails = async (connectedAccountId) => {
 };
 
 // ** utility function
-const updatePaymentAndRelatedAndSendMail = async (eventData) => {
+const updatePaymentAndRelatedAndSendMail = async (webhookEventData) => {
   try {
-    const { id, payment_intent } = eventData;
+    const { id, payment_intent } = webhookEventData;
     // const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent);
 
     const payment = await Payment.findOneAndUpdate(
@@ -301,13 +343,23 @@ const updatePaymentAndRelatedAndSendMail = async (eventData) => {
         { status: ENUM_PROMOTION_STATUS.PAID }
       );
     } else {
-      const updatedBooking = await Booking.findByIdAndUpdate(
-        payment.bookingId,
+      await Booking.updateMany(
+        {
+          _id: payment.bookingId
+            ? payment.bookingId
+            : {
+                $in: payment.bookingIds,
+              },
+        },
         {
           status: ENUM_BOOKING_STATUS.PAID,
         },
         { new: true, runValidators: true }
-      ).populate([
+      );
+
+      const updatedBooking = await Booking.findOne({
+        _id: payment.bookingId ? payment.bookingId : payment.bookingIds[0],
+      }).populate([
         {
           path: "user",
           select: "name email",
@@ -358,20 +410,21 @@ const updatePaymentAndRelatedAndSendMail = async (eventData) => {
 cron.schedule(
   "0 0 * * *",
   catchAsync(async () => {
-    const [bookingDeletionResult, paymentDeletionResult] = await Promise.all([
-      Booking.deleteMany({
-        status: ENUM_BOOKING_STATUS.UNPAID,
-      }),
-      Payment.deleteMany({
-        status: ENUM_PAYMENT_STATUS.UNPAID,
-      }),
-    ]);
+    const [, /* bookingDeletionResult */ paymentDeletionResult] =
+      await Promise.all([
+        // Booking.deleteMany({
+        //   status: ENUM_BOOKING_STATUS.UNPAID,
+        // }),
+        Payment.deleteMany({
+          status: ENUM_PAYMENT_STATUS.UNPAID,
+        }),
+      ]);
 
-    if (bookingDeletionResult.deletedCount > 0) {
-      logger.info(
-        `Deleted ${bookingDeletionResult.deletedCount} unpaid bookings`
-      );
-    }
+    // if (bookingDeletionResult.deletedCount > 0) {
+    //   logger.info(
+    //     `Deleted ${bookingDeletionResult.deletedCount} unpaid bookings`
+    //   );
+    // }
     if (paymentDeletionResult.deletedCount > 0) {
       logger.info(
         `Deleted ${paymentDeletionResult.deletedCount} unpaid payments`
