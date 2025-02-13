@@ -31,6 +31,12 @@ const paymentSchema = new Schema(
       type: ObjectId,
       ref: "Booking",
     },
+    bookingIds: [
+      {
+        type: ObjectId,
+        ref: "Booking",
+      },
+    ],
     businessType: {
       type: String,
       enum: ["track", "event"],

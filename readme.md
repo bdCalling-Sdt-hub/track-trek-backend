@@ -12,5 +12,3 @@ MONGODB_ATLAS_STRING=mongodb+srv://mytrackDB:E7iFCfwdLk1tBdSY@darren.cnygj.mongo
 2. onboarding
 3. after onboarding how client can manage if he needs any documents to be added by the vendors
 4. if he can send direct payment
-
-# to do
