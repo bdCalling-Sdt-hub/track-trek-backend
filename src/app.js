@@ -8,38 +8,13 @@ const corsOptions = require("./helper/corsOptions");
 const routes = require("./app/routes");
 const webhookRoutes = require("./app/module/payment/webhook.routes");
 
-const stripe = require("stripe")("sk_test_51L0k3pBXb2oMSwoOOFy5628JpwJdNvtEhCP9hO3K2TqlVjPcH7iv15BhLwIiFjxi4XiUCHApCK2U7Gts9KnVpy1K00hxRiASsW");
-const endPointSecret = "whsec_41c71273d0be8064482c15a2abf32a7e71fdfe3a26822a56670657af08b96ec8";
-
-
 const app = express();
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
 app.use(cors(corsOptions));
-
-app.post(
-  "/stripe/webhook",
-  express.raw({ type: "application/json" }), // Use raw body middleware
-  (req, res) => {
-    const sig = req.headers["stripe-signature"];
-    try {
-      const event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        endPointSecret
-      );
-      console.log("Webhook verified:", event);
-      res.json({ received: true });
-    } catch (err) {
-      console.error("Webhook Error:", err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-  }
-);
-
-// app.use("/stripe/webhook", webhookRoutes);
+app.use("/stripe/webhook", webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
