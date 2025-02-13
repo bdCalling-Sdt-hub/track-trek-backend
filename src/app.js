@@ -28,7 +28,7 @@ app.post(
       const event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        endpointSecret
+        endPointSecret
       );
       console.log("Webhook verified:", event);
       res.json({ received: true });
