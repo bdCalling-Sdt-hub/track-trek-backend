@@ -14,7 +14,28 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
 app.use(cors(corsOptions));
-app.use("/stripe/webhook", webhookRoutes);
+
+app.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }), // Use raw body middleware
+  (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    try {
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        endpointSecret
+      );
+      console.log("Webhook verified:", event);
+      res.json({ received: true });
+    } catch (err) {
+      console.error("Webhook Error:", err.message);
+      res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  }
+);
+
+// app.use("/stripe/webhook", webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
