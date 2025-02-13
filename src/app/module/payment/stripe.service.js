@@ -270,7 +270,7 @@ const webhookManager = async (req) => {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, endPointSecret);
   } catch (error) {
-    res.status(400).send(`Webhook error: ${error.message}`);
+    response.status(400).send(`Webhook error: ${error.message}`);
     return;
   }
 
