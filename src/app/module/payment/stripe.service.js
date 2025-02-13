@@ -263,6 +263,8 @@ const createCheckoutForPromotion = async (req) => {
 
 const webhookManager = async (req) => {
   const sig = req.headers["stripe-signature"];
+  console.log("Content-Type:", req.headers["content-type"]);
+
   let event;
   const date = new Date();
 
