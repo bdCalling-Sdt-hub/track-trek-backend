@@ -578,38 +578,68 @@ const getSingleBusiness = async (query) => {
 
 const getMyBusiness = async (user, query) => {
   const { userId } = user;
-  const { data, booked } = query;
+  const {
+    data,
+    booked,
+    page = 1, // ✅ Added for pagination
+    limit = 10, // ✅ Added for pagination
+  } = query || {};
+
+  // ✅ Parse pagination values
+  const pageNumber = parseInt(page);
+  const limitNumber = parseInt(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
   let events = [];
+  let totalCount = 0;
+
   const statusFilter = booked
     ? { status: ENUM_EVENT_STATUS.FULL }
     : { status: { $exists: true } };
 
   if (data === "event") {
-    events = await Event.find({
-      host: userId,
-      ...statusFilter,
-    })
-      .populate("slots")
-      .sort("-createdAt");
+    [events, totalCount] = await Promise.all([
+      Event.find({
+        host: userId,
+        ...statusFilter,
+      })
+        .sort("-createdAt")
+        .skip(skip)
+        .limit(limitNumber)
+        .populate("slots"),
+      Event.countDocuments({ host: userId, ...statusFilter }),
+    ]);
 
     return {
-      count: events.length,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        totalCount,
+      }, // ✅ Added pagination info in response
       events,
     };
   } else {
-    const [tracks, userLikes] = await Promise.all([
+    const [tracks, userLikes, totalCount] = await Promise.all([
       Track.find({ host: userId })
         .populate({
           path: "renters slots",
         })
         .sort("-createdAt")
+        .skip(skip)
+        .limit(limitNumber)
         .lean(),
       Like.find({ user: userId }).select("track"),
+      Track.countDocuments({ host: userId }),
     ]);
 
     const tracksWithLike = getTracksWithLike(tracks, userLikes);
 
     return {
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        totalCount,
+      }, // ✅ Added pagination info in response
       count: tracks.length,
       tracks: tracksWithLike,
     };
@@ -642,12 +672,11 @@ const getAllBusiness = async (userData, query) => {
 
   if (longitude && latitude) {
     searchFilters.location = {
-      $nearSphere: {
-        $geometry: {
-          type: "Point",
-          coordinates: [Number(longitude), Number(latitude)],
-        },
-        $maxDistance: 300000,
+      $geoWithin: {
+        $centerSphere: [
+          [Number(longitude), Number(latitude)],
+          300000 / 6378137, // Radius in radians (meters / Earth radius) // 300 km
+        ],
       },
     };
   }
