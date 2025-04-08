@@ -625,7 +625,15 @@ const getAllBusiness = async (userData, query) => {
     latitude,
     category,
     status: eventStatus,
+    page = 1, // ✅ Added for pagination
+    limit = 10, // ✅ Added for pagination
   } = query || {};
+
+  // ✅ Parse pagination values
+  const pageNumber = parseInt(page);
+  const limitNumber = parseInt(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
   let events = [];
   let tracksWithLike = [];
   const searchFilters = {};
@@ -658,6 +666,8 @@ const getAllBusiness = async (userData, query) => {
         `
       )
       .sort("-createdAt")
+      .skip(skip) // ✅ Added for pagination
+      .limit(limitNumber) // ✅ Added for pagination
       .lean();
 
     delete searchFilters["status"];
@@ -675,6 +685,8 @@ const getAllBusiness = async (userData, query) => {
         })
         .collation({ locale: "en", strength: 2 })
         .sort("-createdAt")
+        .skip(skip) // ✅ Added for pagination
+        .limit(limitNumber) // ✅ Added for pagination
         .lean(),
       Like.find({ user: userId }).select("track"),
     ]);
@@ -685,6 +697,10 @@ const getAllBusiness = async (userData, query) => {
   }
 
   return {
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+    }, // ✅ Added pagination info in response
     tracks: tracksWithLike,
     events,
   };
