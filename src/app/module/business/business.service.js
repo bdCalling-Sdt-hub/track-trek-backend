@@ -637,6 +637,8 @@ const getAllBusiness = async (userData, query) => {
   let events = [];
   let tracksWithLike = [];
   const searchFilters = {};
+  let totalEvents = 0; // ✅ Event count
+  let totalTracks = 0; // ✅ Track count
 
   if (longitude && latitude) {
     searchFilters.location = {
@@ -652,6 +654,9 @@ const getAllBusiness = async (userData, query) => {
 
   if (event) {
     if (eventStatus) searchFilters.status = eventStatus;
+
+    // ✅ Count total events before pagination
+    totalEvents = await Event.countDocuments(searchFilters);
 
     events = await Event.find(searchFilters)
       .select(
@@ -677,6 +682,9 @@ const getAllBusiness = async (userData, query) => {
     if (category) searchFilters.category = category;
     searchFilters.status = ENUM_TRACK_STATUS.ACTIVE;
 
+    // ✅ Count total tracks before pagination
+    totalTracks = await Track.countDocuments(searchFilters);
+
     const [tracks, userLikes] = await Promise.all([
       Track.find(searchFilters)
         .populate({
@@ -700,6 +708,8 @@ const getAllBusiness = async (userData, query) => {
     pagination: {
       page: pageNumber,
       limit: limitNumber,
+      ...(event && { totalEvents }), // ✅ Total event count
+      ...(track && { totalTracks }), // ✅ Total track count
     }, // ✅ Added pagination info in response
     tracks: tracksWithLike,
     events,
