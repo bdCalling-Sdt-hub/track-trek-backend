@@ -26,7 +26,7 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
   res.sendFile(filePath);
 });
 
-app.get("/", (req, res) => res.json("Welcome to My Tracks"));
+app.get("/", (req, res) => res.redirect("https://mytrackss.com"));
 
 app.use(globalErrorHandler);
 app.use(NotFoundHandler.handle);
