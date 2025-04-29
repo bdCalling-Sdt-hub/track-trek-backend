@@ -7,7 +7,10 @@
       "namespace": "android_app",
       "package_name": "com.mytracksdarren.roe",
       "sha256_cert_fingerprints": [
-        "CE:50:62:93:55:4F:CD:99:DD:A3:11:EC:74:EF:AD:33:FA:D5:E8:AB:5C:2B:6B:0D:C3:43:42:D2:66:70:7E:3D"
+        "CE:50:62:93:55:4F:CD:99:DD:A3:11:EC:74:EF:AD:33:FA:D5:E8:AB:5C:2B:6B:0D:C3:43:42:D2:66:70:7E:3D",
+        "88:21:68:21:D3:03:DC:EA:9B:62:A6:BD:50:1E:56:81:04:EC:17:C9:8A:22:1E:74:B7:C2:69:DF:DF:F9:2A:26",
+        "99:6E:82:5A:D3:78:E8:3A:FC:8F:DB:D6:50:FD:33:77:E3:B8:55:18:BD:E7:BA:21:6A:DB:B8:4E:0C:B6:FD:BC",
+        "B8:68:DD:85:6D:BC:76:AA:FC:2F:29:6C:28:39:4E:F5:D6:C4:30:33:DD:05:56:E9:B0:B1:04:C7:57:DE:7F:07"
       ]
     }
   }
