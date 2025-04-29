@@ -1,3 +1,4 @@
+const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const globalErrorHandler = require("./app/middleware/globalErrorHandler");
@@ -29,9 +30,17 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
 app.get("/.well-known/apple-app-site-association", (req, res) => {
   const filePath = path.join(
     __dirname,
-    "/.well-known/apple-app-site-association"
+    ".well-known",
+    "apple-app-site-association"
   );
-  res.sendFile(filePath);
+
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      return res.status(500).send("Error reading file");
+    }
+    res.setHeader("Content-Type", "application/json");
+    res.send(data);
+  });
 });
 
 app.get("/", (req, res) => res.redirect("https://mytrackss.com"));
