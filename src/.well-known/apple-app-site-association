@@ -1,0 +1,20 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appIDs": [
+                    "P6DUBGJFDH.com.mytracksdarren.roe.ios"
+                ],
+                "paths": [
+                    "*"
+                ]
+            }
+        ]
+    },
+    "webcredentials": {
+        "apps": [
+            "P6DUBGJFDH.com.mytracksdarren.roe.ios"
+        ]
+    }
+}
