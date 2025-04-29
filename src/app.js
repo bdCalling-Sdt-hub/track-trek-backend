@@ -26,6 +26,14 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
   res.sendFile(filePath);
 });
 
+app.get("/.well-known/apple-app-site-association", (req, res) => {
+  const filePath = path.join(
+    __dirname,
+    "/.well-known/apple-app-site-association"
+  );
+  res.sendFile(filePath);
+});
+
 app.get("/", (req, res) => res.redirect("https://mytrackss.com"));
 
 app.use(globalErrorHandler);
