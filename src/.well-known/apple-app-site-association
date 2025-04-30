@@ -3,11 +3,10 @@
         "apps": [],
         "details": [
             {
-                "appIDs": [
-                    "P6DUBGJFDH.com.mytracksdarren.roe.ios"
-                ],
+                "appID": "P6DUBGJFDH.com.mytracksdarren.roe.ios",
                 "paths": [
-                    "*"
+                    "NOT /",
+                    "/*"
                 ]
             }
         ]
