@@ -715,16 +715,58 @@ const getAllBusiness = async (userData, query) => {
     totalTracks = await Track.countDocuments(searchFilters);
 
     const [tracks, userLikes] = await Promise.all([
-      Track.find(searchFilters)
-        .populate({
-          path: "host",
-          select: "-_id name profile_image",
-        })
-        .collation({ locale: "en", strength: 2 })
-        .sort("-createdAt")
-        .skip(skip) // ✅ Added for pagination
-        .limit(limitNumber) // ✅ Added for pagination
-        .lean(),
+      Track.aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [Number(longitude), Number(latitude)],
+            },
+            distanceField: "distance",
+            spherical: true,
+            maxDistance: 300000, // 300km
+          },
+        },
+        { $sort: { distance: 1 } },
+        { $skip: skip },
+        { $limit: limitNumber },
+        {
+          $lookup: {
+            from: "users", // name of the collection, not the model
+            localField: "host",
+            foreignField: "_id",
+            as: "host",
+          },
+        },
+        { $unwind: "$host" },
+        {
+          $project: {
+            trackName: 1,
+            category: 1,
+            track_image: 1,
+            address: 1,
+            location: 1,
+            description: 1,
+            trackDays: 1,
+            renters: 1,
+            slots: 1,
+            totalTrackDayInMonth: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            distance: { $round: ["$distance", 2] },
+            host: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              profile_image: 1,
+              authId: 1,
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        },
+      ]),
+
       Like.find({ user: userId }).select("track"),
     ]);
 
