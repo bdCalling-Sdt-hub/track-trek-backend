@@ -10,6 +10,8 @@ const corsOptions = {
     "http://10.0.60.24:3003",
     "http://209.97.134.184:8002",
     "http://209.97.134.184:4173",
+    "https://admin.mytrackss.com",
+    "https://mytrackss.com",
   ],
   credentials: true,
 };
