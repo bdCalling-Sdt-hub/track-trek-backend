@@ -127,8 +127,10 @@ const createCheckoutForBooking = async (userData, payload) => {
   const sessionData = {
     payment_method_types: ["card"],
     mode: "payment",
-    success_url: `http://${config.base_url}:${config.port}/payment/success`,
-    cancel_url: `http://${config.base_url}:${config.port}/payment/cancel`,
+    // success_url: `http://${config.base_url}:${config.port}/payment/success`,
+    // cancel_url: `http://${config.base_url}:${config.port}/payment/cancel`,
+    success_url: `https://api.mytrackss.com/payment/success`,
+    cancel_url: `https://api.mytrackss.com/payment/cancel`,
     line_items: [
       {
         price_data: {
@@ -274,7 +276,7 @@ const webhookManager = async (req) => {
     event = stripe.webhooks.constructEvent(req.body, sig, endPointSecret);
   } catch (error) {
     console.log(error);
-    response.status(400).send(`Webhook error: ${error.message}`)
+    response.status(400).send(`Webhook error: ${error.message}`);
     return;
   }
 
