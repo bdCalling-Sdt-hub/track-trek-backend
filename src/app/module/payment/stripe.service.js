@@ -209,8 +209,10 @@ const createCheckoutForPromotion = async (req) => {
   const sessionData = {
     payment_method_types: ["card"],
     mode: "payment",
-    success_url: `http://${config.base_url}:${config.port}/payment/success`,
-    cancel_url: `http://${config.base_url}:${config.port}/payment/cancel`,
+    // success_url: `http://${config.base_url}:${config.port}/payment/success`,
+    // cancel_url: `http://${config.base_url}:${config.port}/payment/cancel`,
+    success_url: `https://api.mytrackss.com/payment/success`,
+    cancel_url: `https://api.mytrackss.com/payment/cancel`,
     line_items: [
       {
         price_data: {
